@@ -1,0 +1,29 @@
+LOCATE COMP "clk" SITE "A10";
+IOBUF PORT "clk" IO_TYPE=LVCMOS33;
+
+LOCATE COMP "flash_csn" SITE "R2";
+IOBUF PORT "flash_csn" IO_TYPE=LVCMOS33;
+
+LOCATE COMP "flash_mosi" SITE "W2";
+IOBUF PORT "flash_mosi" IO_TYPE=LVCMOS33;
+
+LOCATE COMP "flash_miso" SITE "V2";
+IOBUF PORT "flash_miso" IO_TYPE=LVCMOS33;
+
+LOCATE COMP "dbg_flash_sck" SITE "A19";
+IOBUF PORT "dbg_flash_sck" IO_TYPE=LVCMOS33;
+
+LOCATE COMP "dbg_flash_csn" SITE "P1";
+IOBUF PORT "dbg_flash_csn" IO_TYPE=LVCMOS33;
+
+LOCATE COMP "dbg_flash_mosi" SITE "K4";
+IOBUF PORT "dbg_flash_mosi" IO_TYPE=LVCMOS33;
+
+LOCATE COMP "dbg_flash_miso" SITE "E14";
+IOBUF PORT "dbg_flash_miso" IO_TYPE=LVCMOS33;
+
+LOCATE COMP "led" SITE "A13";
+IOBUF PORT "led" IO_TYPE=LVCMOS33;
+
+LOCATE COMP "btn" SITE "P4";
+IOBUF PORT "btn" IO_TYPE=LVCMOS33;
