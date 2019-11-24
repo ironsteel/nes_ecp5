@@ -7,20 +7,16 @@ module video(
 	input [8:0] count_h,
 	input [8:0] count_v,
 	input mode,
-	input ypbpr,
 	input smoothing,
 	input scanlines,
 	input overscan,
 	input palette,
 	
-
 	output       VGA_HS,
 	output       VGA_VS,
 	output [3:0] VGA_R,
 	output [3:0] VGA_G,
-	output [3:0] VGA_B,
-	
-	output osd_visible
+	output [3:0] VGA_B
 );
 
 reg clk2 = 1'b0;
@@ -29,18 +25,22 @@ wire clkv = mode ? clk2 : clk;
 
 wire [5:0] R_out, G_out, B_out;
 
-
-
 // NTSC UnsaturatedV6 palette
 //see: http://www.firebrandx.com/nespalette.html
-/*reg [15:0] pal_unsat_lut[0:63];
-initial $readmemh("nes_palette_unsaturatedv6.txt", pal_unsat_lut);*/
+reg [15:0] pal_unsat_lut[0:63];
+initial $readmemh("nes_palette_unsaturatedv6.txt", pal_unsat_lut);
 
 // FCEUX palette
 reg [15:0] pal_fcelut[0:63];
 initial $readmemh("nes_palette_fceux.txt", pal_fcelut);
 
-wire [14:0] pixel = pal_fcelut[color][14:0];
+wire [14:0] pixel = palette ?  pixel_unsat[14:0] : pixel_fce[14:0];
+reg [15:0] pixel_unsat, pixel_fce;
+
+always @(posedge clk) begin
+    pixel_unsat <= pal_unsat_lut[color];
+    pixel_fce <= pal_fcelut[color];
+end
  
 // Horizontal and vertical counters
 reg [9:0] h, v;
@@ -52,18 +52,15 @@ wire vend = (v == (523 >> mode));       // End of picture, 524 lines. (Should re
 wire [14:0] doubler_pixel;
 wire doubler_sync;
 
-scan_double doubler(clk, pixel,
-		            count_v[8],                 // reset_frame
-		            (count_h[8:3] == 42),       // reset_line
-		            {v[0], h[9] ? 9'd0 : h[8:0] + 9'd1}, // 0-511 for line 1, or 512-1023 for line 2.
-		            doubler_pixel);             // pixel is outputted
-
+Hq2x hq2x(clk, pixel, smoothing,        // enabled 
+            count_v[8],                 // reset_frame
+            (count_h[8:3] == 42),       // reset_line
+            {v[0], h[9] ? 9'd0 : h[8:0] + 9'd1}, // 0-511 for line 1, or 512-1023 for line 2.
+            doubler_sync,               // new frame has just started
+            doubler_pixel);             // pixel is outputted
 
 reg [8:0] old_count_v;
 wire sync_frame = (old_count_v == 9'd511) && (count_v == 9'd0);
-
-assign doubler_sync = sync_frame;
-
 always @(posedge clkv) begin
   h <= (hend || (mode ? sync_frame : doubler_sync)) ? 10'd0 : h + 10'd1;
   if(mode ? sync_frame : doubler_sync) v <= 0;
@@ -95,5 +92,6 @@ assign VGA_VS = !sync_v;
 assign VGA_R = vga_r[4:1];
 assign VGA_G = vga_g[4:1];
 assign VGA_B = vga_b[4:1];
+
 
 endmodule
