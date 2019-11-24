@@ -1,40 +1,52 @@
+// diamond 3.7 accepts this PLL
+// diamond 3.8-3.9 is untested
+// diamond 3.10 or higher is likely to abort with error about unable to use feedback signal
+// cause of this could be from wrong CPHASE/FPHASE parameters
 module pll
 (
     input clkin, // 12 MHz, 0 deg
-    output clkout0, // 20 MHz, 0 deg
+    output clkout0, // 21.4737 MHz, 0 deg
+    output clkout1,
     output locked
 );
-wire clkfb;
-wire clkos;
-wire clkop;
+(* FREQUENCY_PIN_CLKI="12" *)
+(* FREQUENCY_PIN_CLKOP="21.4737" *)
+(* FREQUENCY_PIN_CLKOS="21.4737" *)
 (* ICP_CURRENT="12" *) (* LPF_RESISTOR="8" *) (* MFG_ENABLE_FILTEROPAMP="1" *) (* MFG_GMCREF_SEL="2" *)
 EHXPLLL #(
         .PLLRST_ENA("DISABLED"),
         .INTFB_WAKE("DISABLED"),
         .STDBY_ENABLE("DISABLED"),
         .DPHASE_SOURCE("DISABLED"),
-        .CLKOP_FPHASE(0),
-        .CLKOP_CPHASE(15),
         .OUTDIVIDER_MUXA("DIVA"),
+        .OUTDIVIDER_MUXB("DIVB"),
+        .OUTDIVIDER_MUXC("DIVC"),
+        .OUTDIVIDER_MUXD("DIVD"),
+        .CLKI_DIV(1),
         .CLKOP_ENABLE("ENABLED"),
-        .CLKOP_DIV(30),
-        .CLKFB_DIV(5),
-        .CLKI_DIV(3),
-        .FEEDBK_PATH("INT_OP")
+        .CLKOP_DIV(34),
+        .CLKOP_CPHASE(9),
+        .CLKOP_FPHASE(0),
+        .CLKOS_ENABLE("ENABLED"),
+        .CLKOS_DIV(19),
+        .CLKOS_CPHASE(0),
+        .CLKOS_FPHASE(0),
+        .FEEDBK_PATH("CLKOP"),
+        .CLKFB_DIV(1)
     ) pll_i (
-        .CLKI(clkin),
-        .CLKFB(clkfb),
-        .CLKINTFB(clkfb),
-        .CLKOP(clkop),
         .RST(1'b0),
         .STDBY(1'b0),
+        .CLKI(clkin),
+        .CLKOP(clkout1),
+        .CLKOS(clkout0),
+        .CLKFB(clkout1),
         .PHASESEL0(1'b0),
         .PHASESEL1(1'b0),
-        .PHASEDIR(1'b0),
-        .PHASESTEP(1'b0),
+        .PHASEDIR(1'b1),
+        .PHASESTEP(1'b1),
+        .PHASELOADREG(1'b1),
         .PLLWAKESYNC(1'b0),
         .ENCLKOP(1'b0),
         .LOCK(locked)
 	);
-assign clkout0 = clkop;
 endmodule

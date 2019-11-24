@@ -6,7 +6,7 @@ module icosoc_flashmem (
 	input valid,
 	output reg ready,
 	input [23:0] addr,
-	output reg [15:0] rdata,
+	output reg [31:0] rdata,
 
 	output reg spi_cs,
 	output reg spi_sclk,
@@ -68,6 +68,16 @@ module icosoc_flashmem (
 				end
 				6: begin
 					rdata[15:8] <= buffer;
+					xfer_cnt <= 8;
+					state <= 7;
+				end
+				7: begin
+					rdata[23:16] <= buffer;
+					xfer_cnt <= 8;
+					state <= 8;
+				end
+				8: begin
+					rdata[31:24] <= buffer;
 					ready <= 1;
 				end
 			endcase
