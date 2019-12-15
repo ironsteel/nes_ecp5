@@ -653,8 +653,8 @@ module PPU(input clk, input ce, input reset,   // input clock  21.48 MHz / 4. 1 
         enable_playfield <= din[3];
         enable_objects <= din[4];
         color_intensity <= din[7:5];
-        if (!din[3] && scanline == 59)
-          $write("Disabling playfield at cycle %d\n", cycle);
+        //if (!din[3] && scanline == 59)
+          //$write("Disabling playfield at cycle %d\n", cycle);
       end
       endcase
     end
