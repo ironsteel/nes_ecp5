@@ -44,11 +44,11 @@ wire is_chram = flags_out[15];
 wire spram_en = prg_sel | (!is_chram && chr_sel);
 wire sram_en = ram_sel | (is_chram && chr_sel);
 
-wire [16:0] decoded_address;
-assign decoded_address = chr_sel ? {1'b1, address[15:0]} : address[16:0];
+wire [15:0] decoded_address;
+assign decoded_address = chr_sel ? {1'b1, address[14:0]} : address[15:0];
 
 reg [15:0] load_addr;
-wire [14:0] spram_address = load_done ? decoded_address[16:2] : load_addr[14:0];
+wire [13:0] spram_address = load_done ? decoded_address[15:2] : load_addr[13:0];
 
 wire load_wren;
 wire spram_wren = load_done ? (spram_en && wren) : load_wren;
@@ -80,7 +80,7 @@ generic_ram #(
 
 generic_ram #(
   .WIDTH(32),
-  .WORDS(32767)
+  .WORDS(16383)
 ) sram_rom (
   .clock(clock),
   .reset(reset),
@@ -93,7 +93,7 @@ generic_ram #(
 
 wire flashmem_valid = !load_done;
 wire flashmem_ready;
-assign load_wren =  flashmem_ready && (load_addr != 16'h8000);
+assign load_wren =  flashmem_ready && (load_addr != 16'h4000);
 wire [23:0] flashmem_addr = (24'h200000 + (index_lat << 18)) | {load_addr, 2'b00};
 reg [3:0] index_lat;
 reg load_done_pre;
@@ -120,7 +120,7 @@ begin
     end else begin
       if(!load_done_pre) begin
         if (flashmem_ready == 1'b1) begin
-          if (load_addr == 16'h8000) begin
+          if (load_addr == 16'h4000) begin
             load_done_pre <= 1'b1;
             flags_out <= load_write_data; //last word is mapper flags
           end else begin

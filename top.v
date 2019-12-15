@@ -6,11 +6,11 @@ module top(
 
 	output led,
 	// VGA
-	output         VGA_HS, // VGA H_SYNC
-	output         VGA_VS, // VGA V_SYNC
-	output [ 2:0]  VGA_R, // VGA Red[3:0]
-	output [ 2:0]  VGA_G, // VGA Green[3:0]
-	output [ 2:0]  VGA_B, // VGA Blue[3:0]
+	output        VGA_HS,
+	output        VGA_VS,
+	output [3:0]  VGA_R,
+	output [3:0]  VGA_G,
+	output [3:0]  VGA_B,
 
 	input btn,
 
@@ -21,7 +21,8 @@ module top(
 	input scanlines,
 	input mode,
 	input overscan,
-	input pallete
+	input pallete,
+	output [7:0] audio_sample
 );
 
 
@@ -50,9 +51,9 @@ pll pll_i(
 
   wire [8:0] cycle;
   wire [8:0] scanline;
-  wire [15:0] sample;
   wire [5:0] color;
-  
+  wire [15:0] sample;
+
   wire load_done;
   wire [21:0] memory_addr;
   wire memory_read_cpu, memory_read_ppu;
@@ -65,11 +66,7 @@ pll pll_i(
   assign led = !load_done;
   
   wire sys_reset = !clock_locked;
-  wire reload = 1'b0;
-
-  wire run_nes_g;
-
-  assign run_nes_g = run_nes;
+  reg reload = 1'b0;
 
   DCCA gb_clock1(
 	  .CLKI(clock1),
@@ -81,7 +78,6 @@ pll pll_i(
 	  reload <= !btn;
   end
 
-  
   main_mem mem (
     .clock(clock),
     .reset(sys_reset),
@@ -127,7 +123,7 @@ pll pll_i(
   end
 
 
-  NES nes(clock, reset_nes, run_nes_g,
+  NES nes(clock, reset_nes, run_nes,
           mapper_flags,
           sample, color,
           joy_strobe, joy_clock, {3'b0, !joy_data_sync},
@@ -139,20 +135,6 @@ pll pll_i(
           cycle, scanline,
           dbgadr,
           dbgctr);
-
-  assign VGA_R[0] = r[3];
-  assign VGA_R[1] = r[2];
-  assign VGA_G[2] = r[1];
-  assign VGA_G[0] = g[3];
-  assign VGA_G[1] = g[2];
-  assign VGA_R[2] = g[1];
-  assign VGA_B[0] = b[3];
-  assign VGA_B[1] = b[2];
-  assign VGA_B[2] = b[1];
-
-wire [3:0] r;
-wire [3:0] g;
-wire [3:0] b;
 
 video video (
 	.clk(clock),
@@ -168,9 +150,19 @@ video video (
 	
 	.VGA_HS(VGA_HS),
 	.VGA_VS(VGA_VS),
-	.VGA_R(r),
-	.VGA_G(g),
-	.VGA_B(b)
+	.VGA_R(VGA_R),
+	.VGA_G(VGA_G),
+	.VGA_B(VGA_B)
 	
+);
+
+assign audio_sample[7:0] = {audio, audio, audio, audio, audio, audio, audio, audio};
+wire audio;
+sigma_delta_dac sigma_delta_dac(
+	.DACout(audio),
+	.DACin(sample),
+	.CLK(clock),
+	.RESET(reset_nes),
+	.CEN(run_nes)
 );
 endmodule
