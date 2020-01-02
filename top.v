@@ -1,5 +1,8 @@
 module top(
-	input clk,
+	input clk25,
+`ifdef SIM
+  output flash_sck,
+`endif
 	output flash_csn,
 	output flash_mosi,
 	input flash_miso,
@@ -12,7 +15,7 @@ module top(
 	output [3:0]  VGA_G,
 	output [3:0]  VGA_B,
 
-	input btn,
+	input reset_btn,
 
 	input joy_data,
 	output joy_strobe,
@@ -26,28 +29,24 @@ module top(
 );
 
 
-wire clock;
-wire locked;
+  wire clock;
+  wire clock_locked;
 
-wire flash_sck;
+  clocks clocks_i(
+    .clock25(clk25),
+    .clock21(clock),
+    .clock_locked(clock_locked)
+  );
 
-wire tristate = 1'b0;
+`ifndef SIM
+  wire flash_sck;
+  wire tristate = 1'b0;
+  USRMCLK u1 (.USRMCLKI(flash_sck), .USRMCLKTS(tristate));
+`endif
 
-USRMCLK u1 (.USRMCLKI(flash_sck), .USRMCLKTS(tristate));
-
-wire clock1;
-pll pll_i(
-	.clkin(clk),
-	.clkout0(clock1),
-	.locked(locked_pre)
-);
+  wire sys_reset = !clock_locked || !reset_btn;
 
   wire scandoubler_disable;
-
-  reg clock_locked;
-  wire locked_pre;
-  always @(posedge clock)
-    clock_locked <= locked_pre;
 
   wire [8:0] cycle;
   wire [8:0] scanline;
@@ -65,18 +64,7 @@ pll pll_i(
 
   assign led = !load_done;
   
-  wire sys_reset = !clock_locked;
   reg reload = 1'b0;
-
-  DCCA gb_clock1(
-	  .CLKI(clock1),
-	  .CE(1),
-	  .CLKO(clock)
-  );
-
-  always @(posedge clock) begin
-	  reload <= !btn;
-  end
 
   main_mem mem (
     .clock(clock),
@@ -102,7 +90,7 @@ pll pll_i(
   );
 
   wire reset_nes = !load_done || sys_reset;
-  reg [1:0] nes_ce;
+  reg [1:0] nes_ce = 0;
   wire run_nes = (nes_ce == 3);	// keep running even when reset, so that the reset can actually do its job!
 
   // NES is clocked at every 4th cycle.
@@ -122,47 +110,48 @@ pll pll_i(
     last_joypad_clock <= joy_clock;
   end
 
+  wire [31:0] dbgadr;
+  wire [2:0] dbgctr;
 
   NES nes(clock, reset_nes, run_nes,
-          mapper_flags,
-          sample, color,
-          joy_strobe, joy_clock, {3'b0, !joy_data_sync},
-          5'b11111,  // enable all channels
-          memory_addr,
-          memory_read_cpu, memory_din_cpu,
-          memory_read_ppu, memory_din_ppu,
-          memory_write, memory_dout,
-          cycle, scanline,
-          dbgadr,
-          dbgctr);
+    mapper_flags,
+    sample, color,
+    joy_strobe, joy_clock, {3'b0, !joy_data_sync},
+    5'b11111,  // enable all channels
+    memory_addr,
+    memory_read_cpu, memory_din_cpu,
+    memory_read_ppu, memory_din_ppu,
+    memory_write, memory_dout,
+    cycle, scanline,
+    dbgadr,
+    dbgctr);
 
-video video (
-	.clk(clock),
-		
-	.color(color),
-	.count_v(scanline),
-	.count_h(cycle),
-	.mode(mode),
-	.smoothing(1'b0),
-	.scanlines(scanlines),
-	.overscan(overscan),
-	.palette(pallete),
-	
-	.VGA_HS(VGA_HS),
-	.VGA_VS(VGA_VS),
-	.VGA_R(VGA_R),
-	.VGA_G(VGA_G),
-	.VGA_B(VGA_B)
-	
-);
+  video video (
+    .clk(clock),
+    .color(color),
+    .count_v(scanline),
+    .count_h(cycle),
+    .mode(mode),
+    .smoothing(1'b0),
+    .scanlines(scanlines),
+    .overscan(overscan),
+    .palette(pallete),
+    
+    .VGA_HS(VGA_HS),
+    .VGA_VS(VGA_VS),
+    .VGA_R(VGA_R),
+    .VGA_G(VGA_G),
+    .VGA_B(VGA_B)
+  );
 
-assign audio_sample[7:0] = {audio, audio, audio, audio, audio, audio, audio, audio};
-wire audio;
-sigma_delta_dac sigma_delta_dac(
-	.DACout(audio),
-	.DACin(sample),
-	.CLK(clock),
-	.RESET(reset_nes),
-	.CEN(run_nes)
-);
+  assign audio_sample[7:0] = {8{audio}};
+  wire audio;
+  sigma_delta_dac sigma_delta_dac(
+    .DACout(audio),
+    .DACin(sample),
+    .CLK(clock),
+    .RESET(reset_nes),
+    .CEN(run_nes)
+  );
+
 endmodule

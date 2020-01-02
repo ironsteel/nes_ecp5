@@ -34,6 +34,15 @@ module cart_mem(
   input flash_miso
 );
 
+
+localparam [15:0] END_ADDR = 16'h4000;
+`ifndef SIM
+localparam [23:0] FLASH_BEGIN_ADDR = 24'h200000;
+`else
+localparam [23:0] FLASH_BEGIN_ADDR = 24'h000000;
+`endif
+
+
 reg load_done;
 initial load_done = 1'b0;
 
@@ -80,7 +89,7 @@ generic_ram #(
 
 generic_ram #(
   .WIDTH(32),
-  .WORDS(16383)
+  .WORDS(16385)
 ) sram_rom (
   .clock(clock),
   .reset(reset),
@@ -93,12 +102,13 @@ generic_ram #(
 
 wire flashmem_valid = !load_done;
 wire flashmem_ready;
-assign load_wren =  flashmem_ready && (load_addr != 16'h4000);
-wire [23:0] flashmem_addr = (24'h200000 + (index_lat << 18)) | {load_addr, 2'b00};
+assign load_wren =  flashmem_ready && (load_addr != END_ADDR);
+wire [23:0] flashmem_addr = (FLASH_BEGIN_ADDR + (index_lat << 18)) | {load_addr, 2'b00};
 reg [3:0] index_lat;
 reg load_done_pre;
 
-reg [7:0] wait_ctr;
+reg [7:0] wait_ctr = 0;
+
 // Flash memory load interface
 always @(posedge clock) 
 begin
@@ -120,7 +130,7 @@ begin
     end else begin
       if(!load_done_pre) begin
         if (flashmem_ready == 1'b1) begin
-          if (load_addr == 16'h4000) begin
+          if (load_addr == END_ADDR) begin
             load_done_pre <= 1'b1;
             flags_out <= load_write_data; //last word is mapper flags
           end else begin
@@ -137,8 +147,6 @@ begin
     end
   end
 end
-
-
 
 icosoc_flashmem flash_i (
 	.clk(clock),
