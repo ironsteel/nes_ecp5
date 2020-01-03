@@ -32,7 +32,7 @@ rom/games.bin: $(IMAGES)
 games_32.hex: rom/games.bin
 	hexdump -e '4/1 "%02X" "\n"' $< -v > $@
 
-games_8.hex: rom/games.bin
+games_8.hex: rom/game_tilt.nes
 	hexdump -e '1/1 "%02X" "\n"' $< -v > $@
 
 testbench_vcd: testbench games_8.hex

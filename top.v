@@ -79,20 +79,21 @@ module top(
   
   reg reload = 1'b0;
 
-  wire [7:0] load_write_data;
-  wire [21:0] load_address;
+  wire [7:0] flash_loader_data_out;
+  wire [21:0] game_loader_address;
   reg [21:0] load_address_reg;
-  wire load_wren;
+  wire [7:0] game_loader_mem;
+  wire flash_loader_data_ready;
+  wire loader_write;
+
   flash_loader flash_load_i (
     .clock(clock),
     .reset(sys_reset),
     .reload(reload),
     .index({4'b0000}),
-    .cart_ready(load_done),
-    .flags_out(mapper_flags),
-    .load_write_data(load_write_data),
-    .load_address(load_address),
-    .load_wren(load_wren),
+    .load_write_data(flash_loader_data_out),
+    .data_valid(flash_loader_data_ready),
+    .game_loader_done(load_done),
     
     //Flash load interface
     .flash_csn(flash_csn),
@@ -101,6 +102,19 @@ module top(
     .flash_miso(flash_miso)
   );
 
+  game_loader game_loader_i(
+    .clk(clock),
+    .reset(sys_reset),
+    .indata(flash_loader_data_out),
+    .indata_clk(flash_loader_data_ready),
+    .mem_addr(game_loader_address),
+    .mem_data(game_loader_mem),
+    .mem_write(loader_write),
+    .mapper_flags(mapper_flags),
+    .done(load_done));
+
+  wire [15:0] sd_data_in;
+  wire [15:0] sd_data_out;
   TRELLIS_IO #(.DIR("BIDIR")) 
     sdio_tristate[15:0] (
       .B(sdram_d),
@@ -108,10 +122,8 @@ module top(
       .O(sd_data_in),
       .T(!load_done ? !loader_write_mem : !memory_write));
 
-  wire [15:0] sd_data_in;
-  wire  [15:0] sd_data_out;
 
-  reg loader_write_triggered = 1'b1;
+  reg loader_write_triggered = 1'b0;
   reg [7:0] loader_write_data_mem;
   reg [21:0] loader_addr_mem;
   reg loader_write_mem = 1'b0;
@@ -134,7 +146,7 @@ module top(
     // cpu/chipset interface
     .addr(!load_done ? {3'b000, loader_addr_mem} : {3'b000, memory_addr}),
     .we(load_done ? memory_write : loader_write_mem),
-    .din(!load_done ? load_write_data : memory_dout),
+    .din(!load_done ? loader_write_data_mem : memory_dout),
     .oeA(memory_read_cpu),
     .doutA(memory_din_cpu),
     .oeB(memory_read_ppu),
@@ -142,10 +154,10 @@ module top(
 
 	// loader_write -> clock when data available
   always @(posedge clock) begin
-    if(load_wren) begin
+    if(loader_write) begin
       loader_write_triggered	<= 1'b1;
-      loader_addr_mem		<= load_address;
-      loader_write_data_mem	<= load_write_data;
+      loader_addr_mem		<= game_loader_address;
+      loader_write_data_mem	<= game_loader_mem;
     end
 
     if(nes_ce == 3) begin
