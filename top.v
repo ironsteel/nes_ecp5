@@ -1,40 +1,53 @@
 module top(
-	input clk25,
+  input clk25,
 `ifdef SIM
   output flash_sck,
 `endif
-	output flash_csn,
-	output flash_mosi,
-	input flash_miso,
+  output flash_csn,
+  output flash_mosi,
+  input flash_miso,
 
-	output led,
-	// VGA
-	output        VGA_HS,
-	output        VGA_VS,
-	output [3:0]  VGA_R,
-	output [3:0]  VGA_G,
-	output [3:0]  VGA_B,
+  output led,
+  // VGA
+  output        VGA_HS,
+  output        VGA_VS,
+  output [3:0]  VGA_R,
+  output [3:0]  VGA_G,
+  output [3:0]  VGA_B,
 
-	input reset_btn,
+  output sdram_csn,       // chip select
+  output sdram_clk,       // clock to SDRAM
+  output sdram_cke,       // clock enable to SDRAM
+  output sdram_rasn,      // SDRAM RAS
+  output sdram_casn,      // SDRAM CAS
+  output sdram_wen,       // SDRAM write-enable
+  output [12:0] sdram_a,  // SDRAM address bus
+  output [1:0] sdram_ba,  // SDRAM bank-address
+  output [1:0] sdram_dqm, // byte select
+  inout [15:0] sdram_d,   // data bus to/from SDRAM
 
-	input joy_data,
-	output joy_strobe,
-	output joy_clock,
+  input reset_btn,
 
-	input scanlines,
-	input mode,
-	input overscan,
-	input pallete,
-	output [7:0] audio_sample
+  input joy_data,
+  output joy_strobe,
+  output joy_clock,
+
+  input scanlines,
+  input mode,
+  input overscan,
+  input pallete,
+  output [7:0] audio_sample
 );
 
 
   wire clock;
   wire clock_locked;
+  wire clock_sdram;
 
   clocks clocks_i(
     .clock25(clk25),
     .clock21(clock),
+    .clock85(clock_sdram),
     .clock_locked(clock_locked)
   );
 
@@ -66,21 +79,20 @@ module top(
   
   reg reload = 1'b0;
 
-  main_mem mem (
+  wire [7:0] load_write_data;
+  wire [21:0] load_address;
+  reg [21:0] load_address_reg;
+  wire load_wren;
+  flash_loader flash_load_i (
     .clock(clock),
     .reset(sys_reset),
     .reload(reload),
     .index({4'b0000}),
-    .load_done(load_done),
+    .cart_ready(load_done),
     .flags_out(mapper_flags),
-    //NES interface
-    .mem_addr(memory_addr),
-    .mem_rd_cpu(memory_read_cpu),
-    .mem_rd_ppu(memory_read_ppu),
-    .mem_wr(memory_write),
-    .mem_q_cpu(memory_din_cpu),
-    .mem_q_ppu(memory_din_ppu),
-    .mem_d(memory_dout),
+    .load_write_data(load_write_data),
+    .load_address(load_address),
+    .load_wren(load_wren),
     
     //Flash load interface
     .flash_csn(flash_csn),
@@ -88,6 +100,63 @@ module top(
     .flash_mosi(flash_mosi),
     .flash_miso(flash_miso)
   );
+
+  TRELLIS_IO #(.DIR("BIDIR")) 
+    sdio_tristate[15:0] (
+      .B(sdram_d),
+      .I(sd_data_out),
+      .O(sd_data_in),
+      .T(!load_done ? !loader_write_mem : !memory_write));
+
+  wire [15:0] sd_data_in;
+  wire  [15:0] sd_data_out;
+
+  reg loader_write_triggered = 1'b1;
+  reg [7:0] loader_write_data_mem;
+  reg [21:0] loader_addr_mem;
+  reg loader_write_mem = 1'b0;
+
+  sdram U8(
+    // interface to the MT48LC16M16 chip
+    .sd_data_in(sd_data_in),
+    .sd_data_out(sd_data_out),
+    .sd_addr(sdram_a),
+    .sd_dqm({sdram_dqm[1], sdram_dqm[0]}),
+    .sd_cs(sdram_csn),
+    .sd_ba(sdram_ba),
+    .sd_we(sdram_wen),
+    .sd_ras(sdram_rasn),
+    .sd_cas(sdram_casn),
+    // system interface
+    .clk(clock_sdram),
+    .clkref(nes_ce[1]),
+    .init(sys_reset),
+    // cpu/chipset interface
+    .addr(!load_done ? {3'b000, loader_addr_mem} : {3'b000, memory_addr}),
+    .we(load_done ? memory_write : loader_write_mem),
+    .din(!load_done ? load_write_data : memory_dout),
+    .oeA(memory_read_cpu),
+    .doutA(memory_din_cpu),
+    .oeB(memory_read_ppu),
+    .doutB(memory_din_ppu));
+
+	// loader_write -> clock when data available
+  always @(posedge clock) begin
+    if(load_wren) begin
+      loader_write_triggered	<= 1'b1;
+      loader_addr_mem		<= load_address;
+      loader_write_data_mem	<= load_write_data;
+    end
+
+    if(nes_ce == 3) begin
+      loader_write_mem <= loader_write_triggered;
+      if(loader_write_triggered)
+        loader_write_triggered <= 1'b0;
+    end
+  end
+
+  assign sdram_cke = 1'b1;
+  assign sdram_clk = clock_sdram;
 
   wire reset_nes = !load_done || sys_reset;
   reg [1:0] nes_ce = 0;

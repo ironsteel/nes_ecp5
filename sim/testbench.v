@@ -49,7 +49,7 @@ module testbench;
       reset <= !reset;
     end
 
-    repeat (100000) @(posedge clk25);
+    repeat (1000000000) @(posedge clk25);
     $display("-- Simulation finished --");
     $finish;
   end
