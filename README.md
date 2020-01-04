@@ -1,11 +1,64 @@
-# NES on the ulx3s Board
+# FPGA NES on the ulx3s Board using prj trellis, nextpnr and yosys
 
-Work in progress, uses VGA PMOD
+## Intro
 
-# TODO
+This is a port of the MIST NES core to the ulx3s board
+using only open source tools for synthesys and place and route.
 
-1. Use external SDRAM for storing the game
-2. Add support for DVI output
-3. Remove main_mem.v and use the SDRAM for the cpu and ppu memory
-4. Integrate original GameLoader.v, so we don't need to convert the nes games
-5. Maybe add support for loading the games from the SDCARD
+At the moment it has working DVI out (640x480@60Hz),
+games are loaded from the onboard SPI flash from offset 0x200000 and
+audio out from the 3.5mm jack
+
+For now only an external NES joystick is used
+hooked on with wires in the J1 expansion's top row.
+
+
+## Building
+
+Before flashing and compiling the bitstream,
+make sure you have the super tilt bros game uploaded to the flash using:
+
+```
+make prog_game
+```
+
+After that type:
+
+```
+make prog
+```
+
+to produce the FPGA bitstream and flash it to the FPGA SRAM.
+
+If everything goes well you should see the game on your DVI screen
+after the bitstream is uploaded.
+
+If everything works it's recommended to upload the bitstream to the onboard FLASH using:
+
+```
+make prog_flash
+```
+
+so you don't need to reupload it when you upload a different game.
+
+## Uploading games
+
+1. Find your favorite game rom file
+2. Rename it's extension from .nes to .img
+4. Type
+```
+ujprog -j FLASH -f 0x200000 [path_to_your_game].img
+```
+
+If everything is ok, the game should start running.
+
+N.B. Games upto 512KB and using mappers MMC0, MMC1, MMC3 and MMC5 are supported for now
+
+# Joystick support
+
+TODO: Add support for using the ulx3s onboard buttons
+TODO: Document NES joystick pinout
+
+# Future improvements
+
+1. Maybe add support for loading the games from the SDCARD

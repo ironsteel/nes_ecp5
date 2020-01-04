@@ -17,6 +17,9 @@ ${PROJ}.svf : ${PROJ}.bit
 prog: ${PROJ}.bit
 	ujprog $<
 
+prog_flash: ${PROJ}.bit
+	ujprog -j FLASH $<
+
 testbench:  $(filter-out $(wildcard pll.v),$(wildcard *.v)) $(wildcard sim/*.v)
 	iverilog -DSIM=1 -o testbench $^ $(shell yosys-config --datdir/ecp5/cells_sim.v)
 
@@ -25,6 +28,11 @@ games_8.hex: rom/game_tilt.nes
 
 testbench_vcd: testbench games_8.hex
 	vvp -N testbench -fst +vcd
+
+prog_game: rom/game_tilt.img
+	ujprog -j FLASH -f 0x200000 $<
+
+
 clean:
 	rm -f *.svf *.bit *.config *.json
 
