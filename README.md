@@ -1,4 +1,4 @@
-# FPGA NES on the ulx3s Board using prj trellis, nextpnr and yosys
+# FPGA NES on the ulx3s 12F Board using prj trellis, nextpnr and yosys
 
 ## Intro
 
