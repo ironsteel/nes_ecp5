@@ -6,7 +6,7 @@ module sigma_delta_dac(
    input                   RESET
 );
 
-parameter MSBI = 7;
+parameter MSBI = 15;
 
 reg [MSBI+2:0] DeltaAdder;   //Output of Delta Adder
 reg [MSBI+2:0] SigmaAdder;   //Output of Sigma Adder
