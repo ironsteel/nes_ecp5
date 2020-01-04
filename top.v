@@ -14,6 +14,8 @@ module top(
   output [3:0]  VGA_R,
   output [3:0]  VGA_G,
   output [3:0]  VGA_B,
+  // DVI out
+  output [3:0] gpdi_dp, gpdi_dn,
 
   output sdram_csn,       // chip select
   output sdram_clk,       // clock to SDRAM
@@ -43,6 +45,14 @@ module top(
   wire clock;
   wire clock_locked;
   wire clock_sdram;
+  wire clk_shift;
+  wire dvi_clock_locked;
+
+  pll_dvi pll_dvi_i(
+    .clkin(clk25),
+    .clkout0(clk_shift),
+    .locked(dvi_clock_locked)
+  );
 
   clocks clocks_i(
     .clock25(clk25),
@@ -93,7 +103,6 @@ module top(
     .index({4'b0000}),
     .load_write_data(flash_loader_data_out),
     .data_valid(flash_loader_data_ready),
-    .game_loader_done(load_done),
     
     //Flash load interface
     .flash_csn(flash_csn),
@@ -113,6 +122,21 @@ module top(
     .mapper_flags(mapper_flags),
     .done(load_done));
 
+  // loader_write -> clock when data available
+  always @(posedge clock) begin
+    if(loader_write) begin
+      loader_write_triggered	<= 1'b1;
+      loader_addr_mem		<= game_loader_address;
+      loader_write_data_mem	<= game_loader_mem;
+    end
+
+    if(nes_ce == 3) begin
+      loader_write_mem <= loader_write_triggered;
+      if(loader_write_triggered)
+        loader_write_triggered <= 1'b0;
+    end
+  end
+
   wire [15:0] sd_data_in;
   wire [15:0] sd_data_out;
   TRELLIS_IO #(.DIR("BIDIR")) 
@@ -129,7 +153,6 @@ module top(
   reg loader_write_mem = 1'b0;
 
   sdram U8(
-    // interface to the MT48LC16M16 chip
     .sd_data_in(sd_data_in),
     .sd_data_out(sd_data_out),
     .sd_addr(sdram_a),
@@ -152,20 +175,6 @@ module top(
     .oeB(memory_read_ppu),
     .doutB(memory_din_ppu));
 
-	// loader_write -> clock when data available
-  always @(posedge clock) begin
-    if(loader_write) begin
-      loader_write_triggered	<= 1'b1;
-      loader_addr_mem		<= game_loader_address;
-      loader_write_data_mem	<= game_loader_mem;
-    end
-
-    if(nes_ce == 3) begin
-      loader_write_mem <= loader_write_triggered;
-      if(loader_write_triggered)
-        loader_write_triggered <= 1'b0;
-    end
-  end
 
   assign sdram_cke = 1'b1;
   assign sdram_clk = clock_sdram;
@@ -207,22 +216,63 @@ module top(
     dbgadr,
     dbgctr);
 
-  video video (
-    .clk(clock),
-    .color(color),
-    .count_v(scanline),
-    .count_h(cycle),
-    .mode(mode),
-    .smoothing(1'b0),
-    .scanlines(scanlines),
-    .overscan(overscan),
-    .palette(pallete),
-    
-    .VGA_HS(VGA_HS),
-    .VGA_VS(VGA_VS),
-    .VGA_R(VGA_R),
-    .VGA_G(VGA_G),
-    .VGA_B(VGA_B)
+  wire blank;
+  wire [7:0] r;
+  wire [7:0] g;
+  wire [7:0] b;
+  wire vga_vs;
+  wire vga_hs;
+
+  vga vga_i(
+    .I_CLK(clock),
+    .I_CLK_VGA(clk25),
+    .I_COLOR(color),
+    .I_HCNT(cycle),
+    .I_VCNT(scanline),
+    .O_HSYNC(vga_hs),
+    .O_VSYNC(vga_vs),
+    .O_BLANK(blank),
+    .O_RED(r),
+    .O_GREEN(g),
+    .O_BLUE(b)
+  );
+  // VGA to digital video converter
+  wire [1:0] tmds[3:0];
+  vga2dvid
+  #(
+    .C_ddr(1'b1),
+    .C_shift_clock_synchronizer(1'b0)
+  )
+  vga2dvid_instance
+  (
+    .clk_pixel(clk25),
+    .clk_shift(clk_shift),
+    .in_red(r),
+    .in_green(g),
+    .in_blue(b),
+    .in_hsync(vga_hs),
+    .in_vsync(vga_vs),
+    .in_blank(blank),
+    .out_clock(tmds[3]),
+    .out_red(tmds[2]),
+    .out_green(tmds[1]),
+    .out_blue(tmds[0])
+  );
+
+  // output TMDS SDR/DDR data to fake differential lanes
+  fake_differential
+  #(
+    .C_ddr(1'b1)
+  )
+  fake_differential_instance
+  (
+    .clk_shift(clk_shift),
+    .in_clock(tmds[3]),
+    .in_red(tmds[2]),
+    .in_green(tmds[1]),
+    .in_blue(tmds[0]),
+    .out_p(gpdi_dp),
+    .out_n(gpdi_dn)
   );
 
   assign audio_sample[7:0] = {8{audio}};
