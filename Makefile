@@ -4,7 +4,7 @@ IDCODE ?= 0x21111043 # 12f
 all: ${PROJ}.bit
 
 %.json: $(wildcard *.v)
-	yosys -q -l synth.log -p "synth_ecp5 -abc9 -json $@" $^
+	yosys -q -l synth.log -p "synth_ecp5 -json $@" $^
 
 %_out.config: %.json
 	nextpnr-ecp5 --json  $< --textcfg $@ --25k --freq 21 --package CABGA381 --lpf ulx3s.lpf
