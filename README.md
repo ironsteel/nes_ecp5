@@ -1,3 +1,4 @@
+
 # FPGA NES on the ulx3s 12F Board using prj trellis, nextpnr and yosys
 
 ## Intro
@@ -56,8 +57,20 @@ N.B. Games upto 512KB using mappers MMC0, MMC1, MMC3 and MMC5 are supported for 
 
 # Joystick support
 
-TODO: Add support for using the ulx3s onboard buttons
-TODO: Document NES joystick pinout
+Right now there are two options for joystick input -
+the onboard ulx3s buttons or an original NES joypad connected
+to the J1 expansion header.
+
+1. If you want to use the onboard buttons make sure that first DIP switch
+on the board is set to OFF. The PWR button acts as the start button.
+
+2. If you have an original NES gamepad you want to use set the first DIP switch to ON
+and wire your gamepad as follows:
+
+```
+J1 HEADER TOP ROW, LEFT TO RIGHT
+[3.3V] [GND] [joy_data] [joy_clock] [joy_strobe]
+```
 
 # Future improvements
 

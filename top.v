@@ -28,16 +28,21 @@ module top(
   output [1:0] sdram_dqm, // byte select
   inout [15:0] sdram_d,   // data bus to/from SDRAM
 
-  input reset_btn,
+
+  input use_external_nes_joypad,
 
   input joy_data,
   output joy_strobe,
   output joy_clock,
 
-  input scanlines,
-  input mode,
-  input overscan,
-  input pallete,
+  input btn_a,
+  input btn_b,
+  input btn_up,
+  input btn_down,
+  input btn_left,
+  input btn_right,
+  input btn_start,
+
   output [7:0] audio_sample
 );
 
@@ -67,7 +72,7 @@ module top(
   USRMCLK u1 (.USRMCLKI(flash_sck), .USRMCLKTS(tristate));
 `endif
 
-  wire sys_reset = !clock_locked || !reset_btn;
+  wire sys_reset = !clock_locked;
 
   wire scandoubler_disable;
 
@@ -187,15 +192,27 @@ module top(
   always @(posedge clock)
     nes_ce <= nes_ce + 1;
 
-  reg joy_data_sync = 0;
   reg last_joypad_clock;
+  reg [7:0] buttons;
+  reg [7:0] joypad_bits;
+
+  // select button is not functional
+  // as we don't have any onboard buttons left on the board
+  wire btn_select = 1'b0;
 
   always @(posedge clock) begin
+    buttons <= {btn_right, btn_left, btn_down, btn_up, !btn_start, btn_select, btn_b, btn_a};
     if (joy_strobe) begin
-      joy_data_sync <= joy_data;
+      if (use_external_nes_joypad)
+        joypad_bits[0] <= !joy_data;
+      else
+        joypad_bits <= buttons;
     end
     if (!joy_clock && last_joypad_clock) begin
-      joy_data_sync <= joy_data;
+      if (use_external_nes_joypad)
+        joypad_bits[0] <= !joy_data;
+      else
+        joypad_bits <= {1'b0, joypad_bits[7:1]};
     end
     last_joypad_clock <= joy_clock;
   end
@@ -206,7 +223,7 @@ module top(
   NES nes(clock, reset_nes, run_nes,
     mapper_flags,
     sample, color,
-    joy_strobe, joy_clock, {3'b0, !joy_data_sync},
+    joy_strobe, joy_clock, {3'b0, joypad_bits[0]},
     5'b11111,  // enable all channels
     memory_addr,
     memory_read_cpu, memory_din_cpu,
