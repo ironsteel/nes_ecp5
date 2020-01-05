@@ -14,7 +14,7 @@ Two options are available for joystick input:
 1. The ulx3s onboard buttons or
 2. An external NES gamepad
 
-Read the [joystick instructions here](#Joystick support) 
+Read the [joystick instructions here](#joystick-support)
 
 
 ## Building
@@ -58,7 +58,7 @@ If everything is ok, the game should start running.
 
 N.B. Games upto 512KB using mappers MMC0, MMC1, MMC3 and MMC5 are supported for now
 
-# Joystick support
+# joystick support
 
 Right now there are two options for joystick input -
 the onboard ulx3s buttons or an original NES joypad connected
