@@ -10,8 +10,11 @@ At the moment it has working DVI out (640x480@60Hz),
 games are loaded from the onboard SPI flash from offset 0x200000 and
 audio out from the 3.5mm jack
 
-For now only an external NES joystick is used
-hooked on with wires in the J1 expansion's top row.
+Two options are available for joystick input:
+1. The ulx3s onboard buttons or
+2. An external NES gamepad
+
+Read the [joystick instructions here](#Joystick support) 
 
 
 ## Building
