@@ -1,5 +1,20 @@
 PROJ=nes
-IDCODE ?= 0x21111043 # 12f
+FPGA_SIZE ?= 12
+
+ifeq ($(FPGA_SIZE), 12)
+  CHIP_ID=0x21111043
+endif
+ifeq ($(FPGA_SIZE), 25)
+  CHIP_ID=0x41111043
+endif
+ifeq ($(FPGA_SIZE), 45)
+  CHIP_ID=0x41112043
+endif
+ifeq ($(FPGA_SIZE), 85)
+  CHIP_ID=0x41113043
+endif
+
+IDCODE ?= $(CHIP_ID)
 
 all: ${PROJ}.bit
 
@@ -7,10 +22,10 @@ all: ${PROJ}.bit
 	yosys -q -l synth.log -p "synth_ecp5 -json $@" $^
 
 %_out.config: %.json
-	nextpnr-ecp5 --json  $< --textcfg $@ --25k --freq 21 --package CABGA381 --lpf ulx3s.lpf
+	nextpnr-ecp5 --json  $< --textcfg $@ --$(FPGA_SIZE)k --freq 21 --package CABGA381 --lpf ulx3s.lpf
 
 %.bit: %_out.config
-	ecppack --freq 19.4 --idcode $(IDCODE) --svf ${PROJ}.svf $< $@
+	ecppack --compress --freq 19.4 --idcode $(IDCODE) --svf ${PROJ}.svf $< $@
 
 ${PROJ}.svf : ${PROJ}.bit
 
