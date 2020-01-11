@@ -1,8 +1,11 @@
 PROJ=nes
 FPGA_SIZE ?= 12
 
+FPGA_KS ?= $(FPGA_SIZE)k
+
 ifeq ($(FPGA_SIZE), 12)
   CHIP_ID=0x21111043
+  FPGA_KS = 25k
 endif
 ifeq ($(FPGA_SIZE), 25)
   CHIP_ID=0x41111043
@@ -22,7 +25,7 @@ all: ${PROJ}.bit
 	yosys -q -l synth.log -p "synth_ecp5 -json $@" $^
 
 %_out.config: %.json
-	nextpnr-ecp5 --json  $< --textcfg $@ --$(FPGA_SIZE)k --freq 21 --package CABGA381 --lpf ulx3s.lpf
+	nextpnr-ecp5 --json  $< --textcfg $@ --$(FPGA_KS) --freq 21 --package CABGA381 --lpf ulx3s.lpf
 
 %.bit: %_out.config
 	ecppack --compress --freq 19.4 --idcode $(IDCODE) --svf ${PROJ}.svf $< $@
