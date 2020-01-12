@@ -1,5 +1,5 @@
 
-# FPGA NES on the ulx3s 12F Board using prj trellis, nextpnr and yosys
+# FPGA NES on the ulx3s board using prj trellis, nextpnr and yosys
 
 ## Intro
 
@@ -33,6 +33,17 @@ make prog
 ```
 
 to produce the FPGA bitstream and flash it to the FPGA SRAM.
+
+The target ecp5 device by default is 12K.
+
+If you have a ulx3s board with a bigger ecp5 FPGA, you can override it using
+
+```
+FPGA_SIZE=45 make prog
+```
+
+or changing the `FPGA_SIZE` variable in the Makefile.
+
 
 If everything goes well you should see the game on your DVI screen
 after the bitstream is uploaded.
