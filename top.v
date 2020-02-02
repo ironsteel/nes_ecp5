@@ -15,7 +15,7 @@ module top(
   output [3:0]  VGA_G,
   output [3:0]  VGA_B,
   // DVI out
-  output [3:0] gpdi_dp, gpdi_dn,
+  output [3:0] gpdi_dp,
 
   output sdram_csn,       // chip select
   output sdram_clk,       // clock to SDRAM
@@ -277,6 +277,7 @@ module top(
   );
 
   // output TMDS SDR/DDR data to fake differential lanes
+  /*
   fake_differential
   #(
     .C_ddr(1'b1)
@@ -291,6 +292,13 @@ module top(
     .out_p(gpdi_dp),
     .out_n(gpdi_dn)
   );
+*/
+  // vendor specific DDR modules
+  // convert SDR 2-bit input to DDR clocked 1-bit output (single-ended)
+  ODDRX1F ddr_clock (.D0(tmds[3][0]), .D1(tmds[3][1]), .Q(gpdi_dp[3]), .SCLK(clk_shift), .RST(0));
+  ODDRX1F ddr_red   (.D0(tmds[2][0]), .D1(tmds[2][1]), .Q(gpdi_dp[2]), .SCLK(clk_shift), .RST(0));
+  ODDRX1F ddr_green (.D0(tmds[1][0]), .D1(tmds[1][1]), .Q(gpdi_dp[1]), .SCLK(clk_shift), .RST(0));
+  ODDRX1F ddr_blue  (.D0(tmds[0][0]), .D1(tmds[0][1]), .Q(gpdi_dp[0]), .SCLK(clk_shift), .RST(0));
 
   assign audio_sample[7:0] = {8{audio}};
   wire audio;
