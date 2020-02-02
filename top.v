@@ -276,23 +276,6 @@ module top(
     .out_blue(tmds[0])
   );
 
-  // output TMDS SDR/DDR data to fake differential lanes
-  /*
-  fake_differential
-  #(
-    .C_ddr(1'b1)
-  )
-  fake_differential_instance
-  (
-    .clk_shift(clk_shift),
-    .in_clock(tmds[3]),
-    .in_red(tmds[2]),
-    .in_green(tmds[1]),
-    .in_blue(tmds[0]),
-    .out_p(gpdi_dp),
-    .out_n(gpdi_dn)
-  );
-*/
   // vendor specific DDR modules
   // convert SDR 2-bit input to DDR clocked 1-bit output (single-ended)
   ODDRX1F ddr_clock (.D0(tmds[3][0]), .D1(tmds[3][1]), .Q(gpdi_dp[3]), .SCLK(clk_shift), .RST(0));
