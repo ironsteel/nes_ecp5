@@ -9,11 +9,10 @@ module top(
 
   output led,
   // VGA
+  output        VGA_CLOCK,
   output        VGA_HS,
   output        VGA_VS,
-  output [3:0]  VGA_R,
-  output [3:0]  VGA_G,
-  output [3:0]  VGA_B,
+  output [7:0]  VGA_R,
   // DVI out
   output [3:0] gpdi_dp, gpdi_dn,
 
@@ -240,58 +239,23 @@ module top(
   wire vga_vs;
   wire vga_hs;
 
-  vga vga_i(
-    .I_CLK(clock),
-    .I_CLK_VGA(clk25),
-    .I_COLOR(color),
-    .I_HCNT(cycle),
-    .I_VCNT(scanline),
-    .O_HSYNC(vga_hs),
-    .O_VSYNC(vga_vs),
-    .O_BLANK(blank),
-    .O_RED(r),
-    .O_GREEN(g),
-    .O_BLUE(b)
-  );
-  // VGA to digital video converter
-  wire [1:0] tmds[3:0];
-  vga2dvid
-  #(
-    .C_ddr(1'b1),
-    .C_shift_clock_synchronizer(1'b0)
-  )
-  vga2dvid_instance
-  (
-    .clk_pixel(clk25),
-    .clk_shift(clk_shift),
-    .in_red(r),
-    .in_green(g),
-    .in_blue(b),
-    .in_hsync(vga_hs),
-    .in_vsync(vga_vs),
-    .in_blank(blank),
-    .out_clock(tmds[3]),
-    .out_red(tmds[2]),
-    .out_green(tmds[1]),
-    .out_blue(tmds[0])
-  );
+reg vidclk_en;
+always @(posedge clock) vidclk_en <= ~vidclk_en;
+  video video (
+	.clk(clock),
+	.color(color),
+	.count_v(scanline),
+	.count_h(cycle),
+  .pal_video(1'b0),
+	.overscan(1'b1),
+	.palette(1'b0),
 
-  // output TMDS SDR/DDR data to fake differential lanes
-  fake_differential
-  #(
-    .C_ddr(1'b1)
-  )
-  fake_differential_instance
-  (
-    .clk_shift(clk_shift),
-    .in_clock(tmds[3]),
-    .in_red(tmds[2]),
-    .in_green(tmds[1]),
-    .in_blue(tmds[0]),
-    .out_p(gpdi_dp),
-    .out_n(gpdi_dn)
-  );
-
+	.sync_h(VGA_HS),
+	.sync_v(VGA_VS),
+	.r(VGA_R),
+	.g(VGA_G),
+	.b(VGA_B)
+);
   assign audio_sample[7:0] = {8{audio}};
   wire audio;
   sigma_delta_dac sigma_delta_dac(
@@ -301,5 +265,6 @@ module top(
     .RESET(reset_nes),
     .CEN(run_nes)
   );
+  assign VGA_CLOCK = vidclk_en;
 
 endmodule

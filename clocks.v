@@ -25,11 +25,13 @@ module clocks(
     .locked(locked_pre)
   );
 
-  DCCA gb_clock1(
+  /*DCCA gb_clock1(
     .CLKI(clock),
     .CE(1),
     .CLKO(clock21)
-  );
+  );*/
+
+  assign clock21 = clock;
 
   always @(posedge clock21)
     clock_locked <= locked_pre;
