@@ -1,13 +1,18 @@
-module top(
-  input clk25,
+module top
+#(
+  parameter C_usb_speed=1'b0, // 0:6 MHz USB1.0, 1:48 MHz USB1.1
+  parameter C_report_length=8  // 8:usual joystick, 20:xbox360
+)
+(
+  input  clk25,
 `ifdef SIM
   output flash_sck,
 `endif
   output flash_csn,
   output flash_mosi,
-  input flash_miso,
+  input  flash_miso,
 
-  output led,
+  output [7:0]  led,
   // VGA
   output        VGA_HS,
   output        VGA_VS,
@@ -24,42 +29,54 @@ module top(
   output sdram_casn,      // SDRAM CAS
   output sdram_wen,       // SDRAM write-enable
   output [12:0] sdram_a,  // SDRAM address bus
-  output [1:0] sdram_ba,  // SDRAM bank-address
-  output [1:0] sdram_dqm, // byte select
-  inout [15:0] sdram_d,   // data bus to/from SDRAM
-
+  output  [1:0] sdram_ba, // SDRAM bank-address
+  output  [1:0] sdram_dqm,// byte select
+  inout  [15:0] sdram_d,  // data bus to/from SDRAM
 
   input use_external_nes_joypad,
 
-  input joy_data,
+  input  joy_data,
   output joy_strobe,
   output joy_clock,
 
-  input btn_a,
-  input btn_b,
-  input btn_up,
-  input btn_down,
-  input btn_left,
-  input btn_right,
-  input btn_start,
+  input  btn_a,
+  input  btn_b,
+  input  btn_up,
+  input  btn_down,
+  input  btn_left,
+  input  btn_right,
+  input  btn_start,
+
+  input  usb_fpga_dp,
+  inout  usb_fpga_bd_dp,
+  inout  usb_fpga_bd_dn,
+  output usb_fpga_pu_dp,
+  output usb_fpga_pu_dn,
 
   output [7:0] audio_sample
 );
-
+  wire clk_125MHz, clk_25MHz; // video
+  wire clk_48MHz, clk_6MHz; // usb
+  wire dvi_clock_locked;
+  clk_25_125_48_6_25
+  clk_dvi_usb_inst
+  (
+    .clk25_i(clk25),
+    .clk125_o(clk_125MHz),
+    .clk48_o(clk_48MHz),
+    .clk6_o(clk_6MHz),
+    .clk25_o(clk_25MHz),
+    .locked(dvi_clock_locked)
+  );
+  wire clk_shift = clk_125MHz;
+  wire clk_pixel = clk_25MHz;
 
   wire clock;
   wire clock_locked;
   wire clock_sdram;
-  wire clk_shift;
-  wire dvi_clock_locked;
-
-  pll_dvi pll_dvi_i(
-    .clkin(clk25),
-    .clkout0(clk_shift),
-    .locked(dvi_clock_locked)
-  );
-
-  clocks clocks_i(
+  clocks
+  clocks_inst
+  (
     .clock25(clk25),
     .clock21(clock),
     .clock85(clock_sdram),
@@ -90,7 +107,7 @@ module top(
   
   wire [31:0] mapper_flags;
 
-  assign led = !load_done;
+  // assign led = !load_done;
   
   reg reload = 1'b0;
 
@@ -144,13 +161,8 @@ module top(
 
   wire [15:0] sd_data_in;
   wire [15:0] sd_data_out;
-  TRELLIS_IO #(.DIR("BIDIR")) 
-    sdio_tristate[15:0] (
-      .B(sdram_d),
-      .I(sd_data_out),
-      .O(sd_data_in),
-      .T(!load_done ? !loader_write_mem : !memory_write));
-
+  assign sdram_d = ~(!load_done ? !loader_write_mem : !memory_write) ? 16'hzzzz : sd_data_out;
+  assign sd_data_in = sdram_d;
 
   reg loader_write_triggered = 1'b0;
   reg [7:0] loader_write_data_mem;
@@ -180,7 +192,6 @@ module top(
     .oeB(memory_read_ppu),
     .doutB(memory_din_ppu));
 
-
   assign sdram_cke = 1'b1;
   assign sdram_clk = clock_sdram;
 
@@ -193,9 +204,60 @@ module top(
     nes_ce <= nes_ce + 1;
 
   reg last_joypad_clock;
-  reg [7:0] buttons;
+  reg [7:0] buttons, usb_buttons;
   reg [7:0] joypad_bits;
 
+  wire clk_usb;  // 6 MHz USB1.0 or 48 MHz USB1.1
+  generate if (C_usb_speed == 1'b0) begin: G_low_speed
+      assign clk_usb = clk_6MHz;
+  end
+  endgenerate
+  generate if (C_usb_speed == 1'b1) begin: G_full_speed
+      assign clk_usb = clk_48MHz;
+  end
+  endgenerate
+
+  assign usb_fpga_pu_dp = 1'b0;
+  assign usb_fpga_pu_dn = 1'b0;
+  wire [C_report_length*8-1:0] S_report;
+  wire S_report_valid;
+  usbh_host_hid
+  #(
+    .C_usb_speed(C_usb_speed) // '0':Low-speed '1':Full-speed
+  )
+  us2_hid_host_inst
+  (
+    .clk(clk_usb), // 6 MHz for low-speed USB1.0 device or 48 MHz for full-speed USB1.1 device
+    .bus_reset(~dvi_clock_locked),
+    .led(), // debug output
+    .usb_dif(usb_fpga_dp),
+    //.usb_dif(usb_fpga_bd_dp), // for trellis < 2020-03-08
+    .usb_dp(usb_fpga_bd_dp),
+    .usb_dn(usb_fpga_bd_dn),
+    .hid_report(S_report),
+    .hid_valid(S_report_valid)
+  );
+
+  // darfon/dragonrise joystick report decoder
+  wire usbjoy_l      = S_report[ 7:6 ] == 2'b00 ? 1'b1 : 1'b0;
+  wire usbjoy_r      = S_report[ 7:6 ] == 2'b11 ? 1'b1 : 1'b0;
+  wire usbjoy_u      = S_report[15:14] == 2'b00 ? 1'b1 : 1'b0;
+  wire usbjoy_d      = S_report[15:14] == 2'b11 ? 1'b1 : 1'b0;
+  wire usbjoy_a      = S_report[46];
+  wire usbjoy_b      = S_report[45];
+  wire usbjoy_start  = S_report[53];
+  wire usbjoy_select = S_report[52];
+  always @(posedge clk_usb)
+  begin
+    if(S_report_valid)
+      usb_buttons <=
+      {
+        usbjoy_r, usbjoy_l, usbjoy_d, usbjoy_u,
+        usbjoy_start, usbjoy_select, usbjoy_b, usbjoy_a
+      };
+  end
+
+  assign led = usb_buttons;
   // select button is not functional
   // as we don't have any onboard buttons left on the board
   wire btn_select = 1'b0;
@@ -206,7 +268,7 @@ module top(
       if (use_external_nes_joypad)
         joypad_bits[0] <= !joy_data;
       else
-        joypad_bits <= buttons;
+        joypad_bits <= buttons | usb_buttons;
     end
     if (!joy_clock && last_joypad_clock) begin
       if (use_external_nes_joypad)
@@ -292,5 +354,4 @@ module top(
     .RESET(reset_nes),
     .CEN(run_nes)
   );
-
 endmodule
