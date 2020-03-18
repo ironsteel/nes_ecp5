@@ -1,6 +1,7 @@
 module top
 #(
   parameter C_usb_speed=1'b0, // 0:6 MHz USB1.0, 1:48 MHz USB1.1
+  parameter C_autofire_hz=10,
   parameter C_report_length=8  // 8:usual joystick, 20:xbox360
 )
 (
@@ -92,7 +93,11 @@ module top
   USRMCLK u1 (.USRMCLKI(flash_sck), .USRMCLKTS(tristate));
 `endif
 
-  wire sys_reset = !clock_locked;
+  reg [23:0] R_reset = 24'hFFFFFF;
+  always @(posedge clock)
+    if(R_reset[23] && clock_locked)
+      R_reset <= R_reset-1;
+  wire sys_reset = R_reset[23];
 
   wire scandoubler_disable;
 
@@ -240,25 +245,19 @@ module top
     .hid_report(S_report),
     .hid_valid(S_report_valid)
   );
-
-  // darfon/dragonrise joystick report decoder
-  wire usbjoy_l      = S_report[ 7:6 ] == 2'b00 ? 1'b1 : 1'b0;
-  wire usbjoy_r      = S_report[ 7:6 ] == 2'b11 ? 1'b1 : 1'b0;
-  wire usbjoy_u      = S_report[15:14] == 2'b00 ? 1'b1 : 1'b0;
-  wire usbjoy_d      = S_report[15:14] == 2'b11 ? 1'b1 : 1'b0;
-  wire usbjoy_a      = S_report[46];
-  wire usbjoy_b      = S_report[45];
-  wire usbjoy_start  = S_report[53];
-  wire usbjoy_select = S_report[52];
-  always @(posedge clk_usb)
-  begin
-    if(S_report_valid)
-      usb_buttons <=
-      {
-        usbjoy_r, usbjoy_l, usbjoy_d, usbjoy_u,
-        usbjoy_start, usbjoy_select, usbjoy_b, usbjoy_a
-      };
-  end
+  
+  usbh_report_decoder
+  #(
+    .c_clk_hz(6000000), // 6 MHz low-speed USB, 48 MHz full-speed USB
+    .c_autofire_hz(C_autofire_hz)
+  )
+  usbh_report_decoder_inst
+  (
+    .i_clk(clk_usb),
+    .i_report(S_report),
+    .i_report_valid(S_report_valid),
+    .o_btn(usb_buttons)
+  );
 
   assign led = usb_buttons;
   // select button is not functional
