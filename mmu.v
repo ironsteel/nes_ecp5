@@ -1649,7 +1649,7 @@ module Mapper71(input clk, input ce, input reset,
     ciram_select <= 0;
   end else if (ce) begin
     if (prg_ain[15] && prg_write) begin
-      $write("%X <= %X (bank = %x)\n", prg_ain, prg_din, prg_bank);
+      // $write("%X <= %X (bank = %x)\n", prg_ain, prg_din, prg_bank);
       if (!prg_ain[14] && mapper232) // $8000-$BFFF Outer bank select (only on iNES 232)
         prg_bank[3:2] <= prg_din[4:3];
       if (prg_ain[14:13] == 0)       // $8000-$9FFF Fire Hawk Mirroring
@@ -1740,7 +1740,7 @@ module NesEvent(input clk, input ce, input reset,
     counter <= mmc1_chr[3] ? 0 : counter + 1;
     
     if (mmc1_chr != oldbits) begin
-      $write("NESEV Control Bits: %X => %X (%d)\n", oldbits, mmc1_chr, unlocked);
+      // $write("NESEV Control Bits: %X => %X (%d)\n", oldbits, mmc1_chr, unlocked);
       oldbits <= mmc1_chr;
     end
   end
