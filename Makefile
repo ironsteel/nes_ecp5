@@ -1,5 +1,5 @@
 PROJ=nes
-FPGA_SIZE ?= 25
+FPGA_SIZE ?= 12
 
 FPGA_KS ?= $(FPGA_SIZE)k
 
