@@ -33,7 +33,7 @@ module top
   output  [1:0] sdram_dqm,// byte select
   inout  [15:0] sdram_d,  // data bus to/from SDRAM
 
-  input use_external_nes_joypad,
+  //input use_external_nes_joypad,
 
   input  joy_data,
   output joy_strobe,
@@ -55,6 +55,9 @@ module top
 
   output [7:0] audio_sample
 );
+
+  parameter  use_external_nes_joypad = 1'b0;
+
   wire clk_125MHz, clk_25MHz; // video
   wire clk_48MHz, clk_6MHz; // usb
   wire dvi_clock_locked;
@@ -161,7 +164,7 @@ module top
 
   wire [15:0] sd_data_in;
   wire [15:0] sd_data_out;
-  assign sdram_d = ~(!load_done ? !loader_write_mem : !memory_write) ? 16'hzzzz : sd_data_out;
+  assign sdram_d = (!load_done ? !loader_write_mem : !memory_write) ? 16'hzzzz : sd_data_out;
   assign sd_data_in = sdram_d;
 
   reg loader_write_triggered = 1'b0;
