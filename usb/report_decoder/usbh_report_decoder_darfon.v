@@ -34,7 +34,7 @@ module usbh_report_decoder
   wire usbjoy_b      = i_report[45];
   wire autofire_b    = ( i_report[51]                 & R_autofire[c_autofire_bits-1]); // B | rtrigger
   wire usbjoy_start  = i_report[53];
-  wire usbjoy_select = i_report[52];
+  wire usbjoy_select = i_report[52]; // button labelled "BACK"
 
   reg [7:0] R_btn;
   always @(posedge i_clk)
