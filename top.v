@@ -1,8 +1,8 @@
 module top
 #(
-  parameter C_usb_speed=1'b0, // 0:6 MHz USB1.0, 1:48 MHz USB1.1
-  parameter C_autofire_hz=10,
-  parameter C_report_length=8  // 8:usual joystick, 20:xbox360
+  parameter C_usb_speed=1'b0,  // 0:6 MHz USB1.0, 1:48 MHz USB1.1
+  parameter C_report_bytes=8, // 8:usual joystick, 20:xbox360
+  parameter C_autofire_hz=10
 )
 (
   input  clk25,
@@ -227,11 +227,12 @@ module top
 
   assign usb_fpga_pu_dp = 1'b0;
   assign usb_fpga_pu_dn = 1'b0;
-  wire [C_report_length*8-1:0] S_report;
+  wire [C_report_bytes*8-1:0] S_report;
   wire S_report_valid;
   usbh_host_hid
   #(
-    .C_usb_speed(C_usb_speed) // '0':Low-speed '1':Full-speed
+    .C_usb_speed(C_usb_speed), // '0':Low-speed '1':Full-speed
+    .C_report_length(C_report_bytes)
   )
   us2_hid_host_inst
   (
@@ -248,7 +249,6 @@ module top
   
   usbh_report_decoder
   #(
-    .c_clk_hz(6000000), // 6 MHz low-speed USB, 48 MHz full-speed USB
     .c_autofire_hz(C_autofire_hz)
   )
   usbh_report_decoder_inst
