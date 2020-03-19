@@ -2,8 +2,10 @@
 // that converts darfon/dragonrise USB joystick
 // HID report to NES 8-bit button state
 
-// For this core to work properly, press central silver button
-// to select report type - upper left LED marked "1" should turn ON
+// For this core to work properly,
+// press central silver button toggles upper left LED marked "1"
+// joystick will work reliably when upper left LED marked "1" is OFF
+// if upper left LED marked "1" is ON, fake keypresses will be randomly generated
 
 module usbh_report_decoder
 #(
