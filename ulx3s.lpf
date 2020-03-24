@@ -236,3 +236,52 @@ LOCATE COMP "usb_fpga_pu_dp" SITE "B12"; # pull up/down control
 LOCATE COMP "usb_fpga_pu_dn" SITE "C12";
 IOBUF  PORT "usb_fpga_pu_dp" PULLMODE=NONE IO_TYPE=LVCMOS33 DRIVE=4;
 IOBUF  PORT "usb_fpga_pu_dn" PULLMODE=NONE IO_TYPE=LVCMOS33 DRIVE=4;
+
+## WiFi ESP-32 "wifi", "usb", "flash" sheet
+# other pins are shared with GP/GN, SD card and JTAG
+LOCATE COMP "wifi_en" SITE "F1"; # enable/reset WiFi
+LOCATE COMP "wifi_rxd" SITE "K3"; # FPGA transmits to WiFi
+LOCATE COMP "wifi_txd" SITE "K4"; # FPGA receives from WiFi
+LOCATE COMP "wifi_gpio0" SITE "L2";
+LOCATE COMP "wifi_gpio5" SITE "N4"; # WIFI LED
+LOCATE COMP "wifi_gpio16" SITE "L1"; # Serial1 RX
+LOCATE COMP "wifi_gpio17" SITE "N3"; # Serial1 TX
+# LOCATE COMP "prog_done" SITE "Y3"; # not GPIO, always active
+IOBUF  PORT "wifi_en" PULLMODE=UP IO_TYPE=LVCMOS33 DRIVE=4;
+IOBUF  PORT "wifi_rxd" PULLMODE=UP IO_TYPE=LVCMOS33 DRIVE=4;
+IOBUF  PORT "wifi_txd" PULLMODE=UP IO_TYPE=LVCMOS33 DRIVE=4;
+IOBUF  PORT "wifi_gpio0" PULLMODE=UP IO_TYPE=LVCMOS33 DRIVE=4;
+IOBUF  PORT "wifi_gpio5" PULLMODE=UP IO_TYPE=LVCMOS33 DRIVE=4;
+IOBUF  PORT "wifi_gpio16" PULLMODE=UP IO_TYPE=LVCMOS33 DRIVE=4;
+IOBUF  PORT "wifi_gpio17" PULLMODE=UP IO_TYPE=LVCMOS33 DRIVE=4;
+# IOBUF  PORT "prog_done" PULLMODE=UP IO_TYPE=LVCMOS33 DRIVE=4;
+
+## SD card "sdcard", "usb" sheet
+LOCATE COMP "sd_clk" SITE "H2"; # sd_clk WiFi_GPIO14
+LOCATE COMP "sd_cmd" SITE "J1"; # sd_cmd_di (MOSI) WiFi GPIO15
+LOCATE COMP "sd_d[0]" SITE "J3"; # sd_dat0_do (MISO) WiFi GPIO2
+LOCATE COMP "sd_d[1]" SITE "H1"; # sd_dat1_irq WiFi GPIO4
+LOCATE COMP "sd_d[2]" SITE "K1"; # sd_dat2 WiFi_GPIO12
+LOCATE COMP "sd_d[3]" SITE "K2"; # sd_dat3_csn WiFi_GPIO13
+LOCATE COMP "sd_wp" SITE "P5"; # not connected
+LOCATE COMP "sd_cdn" SITE "N5"; # not connected
+IOBUF  PORT "sd_clk" PULLMODE=UP IO_TYPE=LVCMOS33 DRIVE=4;
+IOBUF  PORT "sd_cmd" PULLMODE=UP IO_TYPE=LVCMOS33 DRIVE=4;
+IOBUF  PORT "sd_d[0]" PULLMODE=UP IO_TYPE=LVCMOS33 DRIVE=4;
+IOBUF  PORT "sd_d[1]" PULLMODE=UP IO_TYPE=LVCMOS33 DRIVE=4;
+IOBUF  PORT "sd_d[2]" PULLMODE=NONE IO_TYPE=LVCMOS33 DRIVE=4; # WiFi GPIO12 pulldown bootstrapping requir
+IOBUF  PORT "sd_d[3]" PULLMODE=UP IO_TYPE=LVCMOS33 DRIVE=4;
+IOBUF  PORT "sd_wp" PULLMODE=UP IO_TYPE=LVCMOS33 DRIVE=4;
+IOBUF  PORT "sd_cdn" PULLMODE=UP IO_TYPE=LVCMOS33 DRIVE=4;
+
+## USBSERIAL FTDI-FPGA serial port "usb" sheet
+LOCATE COMP "ftdi_rxd" SITE "L4"; # FPGA transmits to ftdi
+LOCATE COMP "ftdi_txd" SITE "M1"; # FPGA receives from ftdi
+LOCATE COMP "ftdi_nrts" SITE "M3"; # FPGA receives
+LOCATE COMP "ftdi_ndtr" SITE "N1"; # FPGA receives
+LOCATE COMP "ftdi_txden" SITE "L3"; # FPGA receives
+IOBUF  PORT "ftdi_rxd" PULLMODE=UP IO_TYPE=LVCMOS33 DRIVE=4;
+IOBUF  PORT "ftdi_txd" PULLMODE=UP IO_TYPE=LVCMOS33;
+IOBUF  PORT "ftdi_nrts" PULLMODE=UP IO_TYPE=LVCMOS33;
+IOBUF  PORT "ftdi_ndtr" PULLMODE=UP IO_TYPE=LVCMOS33;
+IOBUF  PORT "ftdi_txden" PULLMODE=UP IO_TYPE=LVCMOS33;

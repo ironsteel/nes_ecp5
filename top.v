@@ -1,8 +1,11 @@
 module top
 #(
   parameter C_usb_speed=1'b0,  // 0:6 MHz USB1.0, 1:48 MHz USB1.1
-  parameter C_report_bytes=8, // 8:usual joystick, 20:xbox360
-  parameter C_autofire_hz=10
+  parameter C_report_bytes=20, // 8:usual joystick, 20:xbox360
+  parameter C_autofire_hz=10,
+  // choose one: C_flash_loader or C_esp32_loader
+  parameter C_flash_loader=0,
+  parameter C_esp32_loader=1
 )
 (
   input  clk25,
@@ -54,10 +57,29 @@ module top
   output usb_fpga_pu_dp,
   output usb_fpga_pu_dn,
 
+  input  ftdi_txd,
+  output ftdi_rxd,
+
+  input  wifi_txd,
+  output wifi_rxd,
+  output wifi_gpio0,
+  input  wifi_gpio5,
+  input  wifi_gpio16,
+
+  inout  sd_clk, sd_cmd,
+  inout  [3:0] sd_d,
+
   output [7:0] audio_sample
 );
 
   parameter  use_external_nes_joypad = 1'b0;
+
+  // passthru to ESP32 micropython serial console
+  assign wifi_rxd = ftdi_txd;
+  assign ftdi_rxd = wifi_txd;
+
+  assign sd_d[3] = 1'bz; // FPGA pin pullup sets SD card inactive at SPI bus
+  assign sd_d[2] = 1'bz;
 
   wire clk_125MHz, clk_25MHz; // video
   wire clk_48MHz, clk_6MHz; // usb
@@ -97,7 +119,6 @@ module top
   always @(posedge clock)
     if(R_reset[23] && clock_locked)
       R_reset <= R_reset-1;
-  wire sys_reset = R_reset[23];
 
   wire scandoubler_disable;
 
@@ -117,7 +138,7 @@ module top
 
   // assign led = !load_done;
   
-  reg reload = 1'b0;
+  wire reload = 1'b0;
 
   wire [7:0] flash_loader_data_out;
   wire [21:0] game_loader_address;
@@ -125,11 +146,17 @@ module top
   wire [7:0] game_loader_mem;
   wire flash_loader_data_ready;
   wire loader_write;
+  
+  wire sys_reset;
 
-  flash_loader flash_load_i (
+  generate
+  if(C_flash_loader)
+  begin
+  flash_loader flash_load_i
+  (
     .clock(clock),
     .reset(sys_reset),
-    .reload(reload),
+    .reload(1'b0),
     .index({4'b0000}),
     .load_write_data(flash_loader_data_out),
     .data_valid(flash_loader_data_ready),
@@ -140,6 +167,42 @@ module top
     .flash_mosi(flash_mosi),
     .flash_miso(flash_miso)
   );
+  assign sys_reset = R_reset[23];
+  end
+  if(C_esp32_loader)
+  begin
+    wire [15:0] ram_addr;
+    wire spi_wr;
+    reg R_spi_wr;
+    reg [7:0] R_spi_data_out;
+    spirw_slave_v
+    #(
+        .c_addr_bits($bits(ram_addr)),
+        .c_sclk_capable_pin(1'b0)
+    )
+    spirw_slave_inst
+    (
+        .clk(clock),
+        .csn(~wifi_gpio5),
+        .sclk(wifi_gpio16),
+        .mosi(sd_d[1]), // wifi_gpio4
+        // .miso(sd_d[2]), // wifi_gpio12
+        .wr(spi_wr),
+        .addr(ram_addr),
+        //.data_in(ram_do),
+        .data_out(flash_loader_data_out)
+    );
+    wire flash_loader_data_ready = spi_wr & ~R_spi_wr;
+    reg R_sys_reset;
+    always @(posedge clock)
+    begin
+      R_spi_wr <= spi_wr;
+      if(spi_wr == 1'b1 && ram_addr == 16'hFFFF)
+        R_sys_reset <= flash_loader_data_out[0];
+    end
+    assign sys_reset = R_sys_reset;
+  end
+  endgenerate
 
   game_loader game_loader_i(
     .clk(clock),
@@ -259,7 +322,9 @@ module top
     .o_btn(usb_buttons)
   );
 
-  assign led = usb_buttons;
+  assign led[7:1] = 0;
+  assign led[0] = sys_reset;
+  //assign led = usb_buttons;
   // select button is not functional
   // as we don't have any onboard buttons left on the board
   wire btn_select = 1'b0;
