@@ -5,7 +5,7 @@ module top
   parameter C_autofire_hz=10,
   // choose one: C_flash_loader or C_esp32_loader
   parameter C_flash_loader=0,
-  parameter C_esp32_loader=1
+  parameter C_esp32_loader=1 // usage: import spiram; spiram.load("pacman.img")
 )
 (
   input  clk25,
