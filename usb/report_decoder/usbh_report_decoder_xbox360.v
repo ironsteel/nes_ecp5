@@ -22,17 +22,17 @@ module usbh_report_decoder
   always @(posedge i_clk)
     R_autofire <= R_autofire + 1;
 
-  // darfon/dragonrise joystick report decoder
-  wire usbjoy_l      = i_report[63:61] == 3'b100 ? 1'b1 : 1'b0;
-  wire usbjoy_r      = i_report[63:61] == 3'b011 ? 1'b1 : 1'b0;
-  wire usbjoy_u      = i_report[79:77] == 3'b011 ? 1'b1 : 1'b0;
-  wire usbjoy_d      = i_report[79:77] == 3'b100 ? 1'b1 : 1'b0;
-  wire usbjoy_a      = i_report[28];
-  wire autofire_a    = ((i_report[39] | i_report[25]) & R_autofire[c_autofire_bits-1]); // A | ltrigger | rbumper 
-  wire usbjoy_b      = i_report[29];
-  wire autofire_b    = ( i_report[47]                 & R_autofire[c_autofire_bits-1]); // B | rtrigger
-  wire usbjoy_start  = i_report[20];
-  wire usbjoy_select = i_report[21]; // button labelled "BACK"
+  // xbox360 joystick report decoder (left joystick or hat)
+  wire usbjoy_l      =  (i_report[63:61] == 3'b100 ? 1'b1 : 1'b0) | i_report[18];
+  wire usbjoy_r      =  (i_report[63:61] == 3'b011 ? 1'b1 : 1'b0) | i_report[19];
+  wire usbjoy_u      =  (i_report[79:77] == 3'b011 ? 1'b1 : 1'b0) | i_report[16];
+  wire usbjoy_d      =  (i_report[79:77] == 3'b100 ? 1'b1 : 1'b0) | i_report[17];
+  wire usbjoy_a      =   i_report[28] | i_report[31]; // A or Y
+  wire autofire_a    = ((i_report[39] | i_report[25]) & R_autofire[c_autofire_bits-1]); // A : ltrigger | rbumper 
+  wire usbjoy_b      =   i_report[29] | i_report[30]; // B or X
+  wire autofire_b    = ((i_report[47] | i_report[24]) & R_autofire[c_autofire_bits-1]); // B : rtrigger | lbumper
+  wire usbjoy_start  =   i_report[20];
+  wire usbjoy_select =   i_report[21]; // button labelled "BACK"
 
   reg [7:0] R_btn;
   always @(posedge i_clk)
