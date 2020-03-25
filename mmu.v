@@ -2060,12 +2060,12 @@ module MultiMapper(input clk, input ce, input ppu_ce, input reset,
   wire [21:0] map66_prg_addr, map66_chr_addr;
   Mapper66 map66(clk, ce, reset, flags, prg_ain, map66_prg_addr, prg_read, prg_write, prg_din, map66_prg_allow,
                                         chr_ain, map66_chr_addr, map66_chr_allow, map66_vram_a10, map66_vram_ce);
-
+*/
   wire map68_prg_allow, map68_vram_a10, map68_vram_ce, map68_chr_allow;
   wire [21:0] map68_prg_addr, map68_chr_addr;
   Mapper68 map68(clk, ce, reset, flags, prg_ain, map68_prg_addr, prg_read, prg_write, prg_din, map68_prg_allow,
                                         chr_ain, map68_chr_addr, map68_chr_allow, map68_vram_a10, map68_vram_ce);
-
+/*
   wire map69_prg_allow, map69_vram_a10, map69_vram_ce, map69_chr_allow, map69_irq;
   wire [21:0] map69_prg_addr, map69_chr_addr;
   Mapper69 map69(clk, ce, reset, flags, prg_ain, map69_prg_addr, prg_read, prg_write, prg_din, map69_prg_allow,
@@ -2203,7 +2203,9 @@ module MultiMapper(input clk, input ce, input ppu_ce, input reset,
 
     11,
     66: {prg_aout, prg_allow, chr_aout, vram_a10, vram_ce, chr_allow}      = {map66_prg_addr, map66_prg_allow, map66_chr_addr, map66_vram_a10, map66_vram_ce, map66_chr_allow};
+    */
     68: {prg_aout, prg_allow, chr_aout, vram_a10, vram_ce, chr_allow}      = {map68_prg_addr, map68_prg_allow, map68_chr_addr, map68_vram_a10, map68_vram_ce, map68_chr_allow};
+    /*
     69: {prg_aout, prg_allow, chr_aout, vram_a10, vram_ce, chr_allow, irq} = {map69_prg_addr, map69_prg_allow, map69_chr_addr, map69_vram_a10, map69_vram_ce, map69_chr_allow, map69_irq};
 
     71,
