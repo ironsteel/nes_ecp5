@@ -29,7 +29,7 @@ class spiram:
   def load_stream(self, filedata, addr=0, blocksize=1024):
     block = bytearray(blocksize)
     self.led.on()
-    self.hwspi.write(bytearray([0x00,(addr >> 8) & 0xFF, addr & 0xFF]))
+    self.hwspi.write(bytearray([0x00, (addr >> 24) & 0xFF, (addr >> 16) & 0xFF, (addr >> 8) & 0xFF, addr & 0xFF]))
     while True:
       if filedata.readinto(block):
         self.hwspi.write(block)
@@ -52,15 +52,15 @@ class spiram:
 def load(filename, addr=0):
   s=spiram()
   s.led.on()
-  s.hwspi.write(bytearray([0x00,0xFF,0xFF,0])) # not reset
+  s.hwspi.write(bytearray([0x00,0xFF,0xFF,0xFF,0xFF,0])) # not reset
   s.led.off()
   s.led.on()
-  s.hwspi.write(bytearray([0x00,0xFF,0xFF,1])) # yes reset
+  s.hwspi.write(bytearray([0x00,0xFF,0xFF,0xFF,0xFF,1])) # yes reset
   s.led.off()
   s.led.on()
-  sleep_ms(500)
+  sleep_ms(100)
   s.led.on()
-  s.hwspi.write(bytearray([0x00,0xFF,0xFF,0])) # not reset
+  s.hwspi.write(bytearray([0x00,0xFF,0xFF,0xFF,0xFF,0])) # not reset
   s.led.off()
   s.load_stream(open(filename, "rb"), addr)
 

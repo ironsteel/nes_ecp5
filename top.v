@@ -171,7 +171,7 @@ module top
   end
   if(C_esp32_loader)
   begin
-    wire [15:0] ram_addr;
+    wire [31:0] ram_addr;
     wire spi_wr;
     reg R_spi_wr;
     reg [7:0] R_spi_data_out;
@@ -197,7 +197,7 @@ module top
     always @(posedge clock)
     begin
       R_spi_wr <= spi_wr;
-      if(spi_wr == 1'b1 && ram_addr == 16'hFFFF)
+      if(spi_wr == 1'b1 && ram_addr[31:8] == 24'hFFFFFF)
         R_sys_reset <= flash_loader_data_out[0];
     end
     assign sys_reset = R_sys_reset;
@@ -322,9 +322,9 @@ module top
     .o_btn(usb_buttons)
   );
 
-  assign led[7:1] = 0;
-  assign led[0] = sys_reset;
-  //assign led = usb_buttons;
+  //assign led[7:1] = 0;
+  //assign led[0] = sys_reset;
+  assign led = usb_buttons;
   // select button is not functional
   // as we don't have any onboard buttons left on the board
   wire btn_select = 1'b0;
