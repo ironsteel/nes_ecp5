@@ -7,8 +7,8 @@ module top
   parameter C_report_bytes_strict=1, // 0:when report length is variable/unknown
   parameter C_autofire_hz=10,
   // choose one: C_flash_loader or C_esp32_loader
-  parameter C_flash_loader=0,
-  parameter C_esp32_loader=1 // usage: import spiram; spiram.load("pacman.img")
+  parameter C_flash_loader=1,
+  parameter C_esp32_loader=0 // usage: import spiram; spiram.load("pacman.img")
 )
 (
   input  clk25,
