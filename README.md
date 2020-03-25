@@ -68,6 +68,7 @@ ujprog -j FLASH -f 0x200000 [path_to_your_game].img
 If everything is ok, the game should start running.
 
 N.B. Games upto 512KB using mappers MMC0, MMC1, MMC3 and MMC5 are supported for now
+See list of [games and mappers](http://tuxnes.sourceforge.net/nesmapper.txt)
 
 # joystick support
 
