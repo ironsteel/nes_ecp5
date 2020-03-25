@@ -1,7 +1,10 @@
 module top
 #(
   parameter C_usb_speed=1'b0,  // 0:6 MHz USB1.0, 1:48 MHz USB1.1
-  parameter C_report_bytes=20, // 8:usual joystick, 20:xbox360
+  // xbox360 : C_report_bytes=20, C_report_bytes_strict=1
+  // darfon  : C_report_bytes= 8, C_report_bytes_strict=1
+  parameter C_report_bytes=8, // 8:usual joystick, 20:xbox360
+  parameter C_report_bytes_strict=1, // 0:when report length is variable/unknown
   parameter C_autofire_hz=10,
   // choose one: C_flash_loader or C_esp32_loader
   parameter C_flash_loader=0,
@@ -295,7 +298,8 @@ module top
   usbh_host_hid
   #(
     .C_usb_speed(C_usb_speed), // '0':Low-speed '1':Full-speed
-    .C_report_length(C_report_bytes)
+    .C_report_length(C_report_bytes),
+    .C_report_length_strict(C_report_bytes_strict)
   )
   us2_hid_host_inst
   (
