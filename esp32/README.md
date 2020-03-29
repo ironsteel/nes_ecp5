@@ -18,8 +18,9 @@ Option 2: bitstream in ESP32 FLASH:
 
 upload "ecp5.py", "nes.bit.gz" to root directory of ESP32.
 
-Upload few ROMs from some site like [wowroms](https://wowroms.com)
-to SD card, it can be done using "uftpd.py", SD card reader is not required.
+Download few ROMs from some site like [wowroms](https://wowroms.com),
+unzip ROM file and upload it to SD card, it can be done using
+"uftpd.py", SD card reader is not required.
 
 Start ESP32 NES OSD loader:
 
@@ -32,6 +33,6 @@ ULX3S board:
 
     UP+DOWN+LEFT+RIGHT (pressed together): directory list window open/close
     UP or DOWN: move cursor in the directory list
-    RIGHT: enter subdirectory or load file
+    RIGHT: enter subdirectory or load ROM file
     LEFT: back one subdirectory level
  
