@@ -12,6 +12,8 @@ Option 1: bitstream in SPI FLASH:
 
     ujprog -j flash nes.bit
 
+in "nes.py" you need to comment lines for ecp5 loading.
+
 Option 2: bitstream in ESP32 FLASH:
 
     gzip -9 nes.bit
