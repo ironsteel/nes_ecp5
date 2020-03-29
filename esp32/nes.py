@@ -41,6 +41,7 @@ class nes:
     self.spi_freq = const(2000000)
     self.hwspi=SPI(self.spi_channel, baudrate=self.spi_freq, polarity=0, phase=0, bits=8, firstbit=SPI.MSB, sck=Pin(self.gpio_sck), mosi=Pin(self.gpio_mosi), miso=Pin(self.gpio_miso))
     alloc_emergency_exception_buf(100)
+    self.enable = bytearray(1)
     self.irq_handler(0)
     self.irq_handler_ref = self.irq_handler # allocation happens here
     self.spi_request = Pin(0, Pin.IN, Pin.PULL_UP)
@@ -70,17 +71,24 @@ class nes:
       self.hwspi.write_readinto(self.spi_read_btn, self.spi_result)
       self.led.off()
       btn = p8result[6]
-      self.osd_enable((btn&2)>>1) # hold btn1 to enable OSD
-      if btn&4: # btn2 refresh directory
-        self.show_dir()
-      if btn&8: # btn3 cursor up
-        self.move_dir_cursor(-1)
-      if btn&16: # btn4 cursor down
-        self.move_dir_cursor(1)
-      if btn&32: # btn6 cursor left
-        self.updir()
-      if btn&64: # btn6 cursor right
-        self.select_entry()
+      p8enable = ptr8(addressof(self.enable))
+      if p8enable[0]&2: # wait to release all BTNs
+        if btn==1:
+          p8enable[0]&=1 # clear bit that waits for all BTNs released
+      else: # all BTNs released
+        if (btn&0x78)==0x78: # all cursor BTNs pressed at the same time
+          self.show_dir() # refresh directory
+          p8enable[0]=(p8enable[0]^1)|2;
+          self.osd_enable(p8enable[0]&1)
+        if p8enable[0]==1:
+          if btn==9: # btn3 cursor up
+            self.move_dir_cursor(-1)
+          if btn==17: # btn4 cursor down
+            self.move_dir_cursor(1)
+          if btn==33: # btn6 cursor left
+            self.updir()
+          if btn==65: # btn6 cursor right
+            self.select_entry()
 
   def select_entry(self):
     if self.direntries[self.fb_cursor][1]: # is it directory
@@ -114,17 +122,27 @@ class nes:
     oldselected = self.fb_selected - self.fb_topitem
     self.fb_selected = self.fb_cursor
     try:
-      self.diskfile = open(self.fullpath(self.direntries[self.fb_cursor][0]), "rb")
+      filename = self.fullpath(self.direntries[self.fb_cursor][0])
     except:
-      self.diskfile = False
+      filename = False
       self.fb_selected = -1
     self.show_dir_line(oldselected)
     self.show_dir_line(self.fb_cursor - self.fb_topitem)
-    if self.diskfile:
+    if filename:
+      self.load(filename)
+      self.osd_enable(0)
+      self.enable[0]=0
+
+  def load(self, filename):  
+    try:
+      filedata = open(filename,"rb")
+    except:
+      filedata = False
+    if filedata:
       self.reset_nes(1)
       self.reset_nes(0)
-      self.load_stream(self.diskfile)
-      self.diskfile.close()
+      self.load_stream(filedata)
+      filedata.close()
 
   # read from file -> write to SPI RAM
   def load_stream(self, filedata, addr=0, blocksize=1024):
@@ -251,6 +269,10 @@ class nes:
   #    self.hwspi.write(bytearray([0,0xFD,0,0,0])) # write content
   #    self.hwspi.write(bytearray(a)) # write content
   #    self.led.off()
+
+def load(filename):
+  n=nes()
+  n.load(filename)
 
 ecp5.prog("nes.bit.gz")
 gc.collect()
