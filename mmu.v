@@ -2024,7 +2024,7 @@ module MultiMapper(input clk, input ce, input ppu_ce, input reset,
                                    chr_ain, mmc5_chr_addr, mmc5_chr_dout, mmc5_has_chr_dout, 
                                    mmc5_chr_allow, mmc5_vram_a10, mmc5_vram_ce, mmc5_irq);
 
-  /*
+
   wire map13_prg_allow, map13_vram_a10, map13_vram_ce, map13_chr_allow;
   wire [21:0] map13_prg_addr, map13_chr_addr;
   Mapper13 map13(clk, ce, reset, flags, prg_ain, map13_prg_addr, prg_read, prg_write, prg_din, map13_prg_allow,
@@ -2034,7 +2034,7 @@ module MultiMapper(input clk, input ce, input ppu_ce, input reset,
   wire [21:0] map15_prg_addr, map15_chr_addr;
   Mapper15 map15(clk, ce, reset, flags, prg_ain, map15_prg_addr, prg_read, prg_write, prg_din, map15_prg_allow,
                                         chr_ain, map15_chr_addr, map15_chr_allow, map15_vram_a10, map15_vram_ce);
-
+/*
   wire map16_prg_allow, map16_vram_a10, map16_vram_ce, map16_chr_allow, map16_irq;
   wire [21:0] map16_prg_addr, map16_chr_addr;
   wire [7:0] map16_prg_dout;
@@ -2188,9 +2188,9 @@ module MultiMapper(input clk, input ce, input ppu_ce, input reset,
     7,
     28: {prg_aout, prg_allow, chr_aout, vram_a10, vram_ce, chr_allow}      = {map28_prg_addr, map28_prg_allow, map28_chr_addr, map28_vram_a10, map28_vram_ce, map28_chr_allow};
 
-  /*  13: {prg_aout, prg_allow, chr_aout, vram_a10, vram_ce, chr_allow}      = {map13_prg_addr, map13_prg_allow, map13_chr_addr, map13_vram_a10, map13_vram_ce, map13_chr_allow};
+    13: {prg_aout, prg_allow, chr_aout, vram_a10, vram_ce, chr_allow}      = {map13_prg_addr, map13_prg_allow, map13_chr_addr, map13_vram_a10, map13_vram_ce, map13_chr_allow};
     15: {prg_aout, prg_allow, chr_aout, vram_a10, vram_ce, chr_allow}      = {map15_prg_addr, map15_prg_allow, map15_chr_addr, map15_vram_a10, map15_vram_ce, map15_chr_allow};
-	 
+/*	 
 	 16: {prg_aout, prg_allow, chr_aout, vram_a10, vram_ce, chr_allow, prg_dout, irq} = {map16_prg_addr, map16_prg_allow, map16_chr_addr, map16_vram_a10, map16_vram_ce, map16_chr_allow, map16_prg_dout, map16_irq};
     
 	 34: {prg_aout, prg_allow, chr_aout, vram_a10, vram_ce, chr_allow}      = {map34_prg_addr, map34_prg_allow, map34_chr_addr, map34_vram_a10, map34_vram_ce, map34_chr_allow};
