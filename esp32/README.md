@@ -5,30 +5,30 @@ Uploading to ESP32 is explained in
 
 Upload "nes.py" to ESP32
 
-Compile NES bitstream "nes.bit.gz" with ESP32 support. Also USB support
+Compile NES bitstream "nes.bit" with ESP32 support. Also USB support
 is recommended if you have compatible joystick (darfon, saitek, xbox360).
 
-Option 1: bitstream in SPI FLASH: Upload NES bitstream to SPI flash
+Option 1: bitstream in SPI FLASH:
 
     ujprog -j flash nes.bit
 
-Option 2: bitstream in ESP32 FLASH: gzip NES bitstream
+Option 2: bitstream in ESP32 FLASH:
 
     gzip -9 nes.bit
 
-For Option 2, upload "ecp5.py", "nes.bit.gz" to root directory of ESP32.
+upload "ecp5.py", "nes.bit.gz" to root directory of ESP32.
 
-Upload few ROMs from some site like
-[wowroms](https://wowroms.com/en/roms/nintendo-entertainment-system)
+Upload few ROMs from some site like [wowroms](https://wowroms.com)
 to SD card, it can be done using "uftpd.py", SD card reader is not required.
 
-Start ESP32 NES OSD
+Start ESP32 NES OSD loader:
 
     screen /dev/ttyUSB0 115200
     >>> import nes
 
-It will upload NES bitstream "nes.bit.gz" to ESP32 and register interrupt
-handler, it should respond to those keypresses:
+It will upload NES bitstream "nes.bit.gz" to ECP5 and
+register interrupt handler, it should respond to those keypresses on
+ULX3S board:
 
     UP+DOWN+LEFT+RIGHT (pressed together): directory list window open/close
     UP or DOWN: move cursor in the directory list
