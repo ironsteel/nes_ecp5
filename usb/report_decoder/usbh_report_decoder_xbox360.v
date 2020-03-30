@@ -1,5 +1,5 @@
-// specific report decoder
-// that converts XBOX360 USB joystick
+// report decoder
+// converts XBOX360 USB joystick
 // HID report to NES 8-bit button state
 
 module usbh_report_decoder
@@ -19,13 +19,21 @@ module usbh_report_decoder
   always @(posedge i_clk)
     R_autofire <= R_autofire + 1;
 
-  // xbox360 joystick report decoder (left joystick or hat)
-  wire usbjoy_l      =  (i_report[63:61] == 3'b100 ? 1'b1 : 1'b0) | i_report[18];
-  wire usbjoy_r      =  (i_report[63:61] == 3'b011 ? 1'b1 : 1'b0) | i_report[19];
-  wire usbjoy_u      =  (i_report[79:77] == 3'b011 ? 1'b1 : 1'b0) | i_report[16];
-  wire usbjoy_d      =  (i_report[79:77] == 3'b100 ? 1'b1 : 1'b0) | i_report[17];
+  // xbox360 joystick report decoder
+  wire hat_l         =   i_report[18];
+  wire hat_r         =   i_report[19];
+  wire hat_u         =   i_report[16];
+  wire hat_d         =   i_report[17];
+  wire usbjoyl_l     =   i_report[63:61]   == 3'b100 ? 1'b1 : 1'b0;
+  wire usbjoyl_r     =   i_report[63:61]   == 3'b011 ? 1'b1 : 1'b0;
+  wire usbjoyl_u     =   i_report[79:77]   == 3'b011 ? 1'b1 : 1'b0;
+  wire usbjoyl_d     =   i_report[79:77]   == 3'b100 ? 1'b1 : 1'b0;
+  wire usbjoyr_l     =   i_report[95:93]   == 3'b100 ? 1'b1 : 1'b0;
+  wire usbjoyr_r     =   i_report[95:93]   == 3'b011 ? 1'b1 : 1'b0;
+  wire usbjoyr_u     =   i_report[111:109] == 3'b011 ? 1'b1 : 1'b0;
+  wire usbjoyr_d     =   i_report[111:109] == 3'b100 ? 1'b1 : 1'b0;
   wire usbjoy_a      =   i_report[28] | i_report[31]; // A or Y
-  wire autofire_a    = ((i_report[39] | i_report[25]) & R_autofire[c_autofire_bits-1]); // A : ltrigger | rbumper 
+  wire autofire_a    = ((i_report[39] | i_report[25]) & R_autofire[c_autofire_bits-1]); // A : ltrigger | rbumper
   wire usbjoy_b      =   i_report[29] | i_report[30]; // B or X
   wire autofire_b    = ((i_report[47] | i_report[24]) & R_autofire[c_autofire_bits-1]); // B : rtrigger | lbumper
   wire usbjoy_start  =   i_report[20];
@@ -38,8 +46,14 @@ module usbh_report_decoder
     if(i_report_valid)
       R_btn <=
       {
-        usbjoy_r, usbjoy_l, usbjoy_d, usbjoy_u,
-        usbjoy_start, usbjoy_select, usbjoy_b, usbjoy_a
+        usbjoyl_r|usbjoyr_r|hat_r,
+        usbjoyl_l|usbjoyr_l|hat_l,
+        usbjoyl_d|usbjoyr_d|hat_d,
+        usbjoyl_u|usbjoyr_u|hat_u,
+        usbjoy_start,
+        usbjoy_select,
+        usbjoy_b,
+        usbjoy_a
       };
   end
   
