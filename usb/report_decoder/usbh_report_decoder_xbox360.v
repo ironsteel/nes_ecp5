@@ -1,9 +1,6 @@
 // specific report decoder
-// that converts darfon/dragonrise USB joystick
+// that converts XBOX360 USB joystick
 // HID report to NES 8-bit button state
-
-// For this core to work properly, press central silver button
-// to select report type - upper left LED marked "1" should turn ON
 
 module usbh_report_decoder
 #(
