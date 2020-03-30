@@ -2024,7 +2024,6 @@ module MultiMapper(input clk, input ce, input ppu_ce, input reset,
                                    chr_ain, mmc5_chr_addr, mmc5_chr_dout, mmc5_has_chr_dout, 
                                    mmc5_chr_allow, mmc5_vram_a10, mmc5_vram_ce, mmc5_irq);
 
-
   wire map13_prg_allow, map13_vram_a10, map13_vram_ce, map13_chr_allow;
   wire [21:0] map13_prg_addr, map13_chr_addr;
   Mapper13 map13(clk, ce, reset, flags, prg_ain, map13_prg_addr, prg_read, prg_write, prg_din, map13_prg_allow,
@@ -2084,13 +2083,12 @@ module MultiMapper(input clk, input ce, input ppu_ce, input reset,
   wire map165_prg_allow, map165_vram_a10, map165_vram_ce, map165_chr_allow, map165_irq;
   wire [21:0] map165_prg_addr, map165_chr_addr;
   Mapper165 map165(clk, ppu_ce, reset, flags, prg_ain, map165_prg_addr, prg_read, prg_write, prg_din, map165_prg_allow,
-													 chr_read, chr_ain, map165_chr_addr, map165_chr_allow, map165_vram_a10, map165_vram_ce, map165_irq);
+                                    chr_read, chr_ain, map165_chr_addr, map165_chr_allow, map165_vram_a10, map165_vram_ce, map165_irq);
 
   wire map228_prg_allow, map228_vram_a10, map228_vram_ce, map228_chr_allow;
   wire [21:0] map228_prg_addr, map228_chr_addr;
   Mapper228 map228(clk, ce, reset, flags, prg_ain, map228_prg_addr, prg_read, prg_write, prg_din, map228_prg_allow,
                                           chr_ain, map228_chr_addr, map228_chr_allow, map228_vram_a10, map228_vram_ce);
-
 
   wire map234_prg_allow, map234_vram_a10, map234_vram_ce, map234_chr_allow;
   wire [21:0] map234_prg_addr, map234_chr_addr;
@@ -2100,8 +2098,8 @@ module MultiMapper(input clk, input ce, input ppu_ce, input reset,
   wire rambo1_prg_allow, rambo1_vram_a10, rambo1_vram_ce, rambo1_chr_allow, rambo1_irq;
   wire [21:0] rambo1_prg_addr, rambo1_chr_addr;
   Rambo1 rambo1(clk, ce, reset, flags, prg_ain, rambo1_prg_addr, prg_read, prg_write, prg_din, rambo1_prg_allow,
-                                   chr_ain, rambo1_chr_addr, rambo1_chr_allow, rambo1_vram_a10, rambo1_vram_ce, rambo1_irq);*/
-
+                                   chr_ain, rambo1_chr_addr, rambo1_chr_allow, rambo1_vram_a10, rambo1_vram_ce, rambo1_irq);
+*/
   wire [21:0] nesev_prg_addr, nesev_chr_addr;
   wire nesev_irq;
   NesEvent nesev(clk, ce, reset, prg_ain, nesev_prg_addr, chr_ain, nesev_chr_addr, mmc1_chr_addr[16:13], mmc1_prg_addr, nesev_irq);
@@ -2191,21 +2189,21 @@ module MultiMapper(input clk, input ce, input ppu_ce, input reset,
     13: {prg_aout, prg_allow, chr_aout, vram_a10, vram_ce, chr_allow}      = {map13_prg_addr, map13_prg_allow, map13_chr_addr, map13_vram_a10, map13_vram_ce, map13_chr_allow};
     15: {prg_aout, prg_allow, chr_aout, vram_a10, vram_ce, chr_allow}      = {map15_prg_addr, map15_prg_allow, map15_chr_addr, map15_vram_a10, map15_vram_ce, map15_chr_allow};
 /*	 
-	 16: {prg_aout, prg_allow, chr_aout, vram_a10, vram_ce, chr_allow, prg_dout, irq} = {map16_prg_addr, map16_prg_allow, map16_chr_addr, map16_vram_a10, map16_vram_ce, map16_chr_allow, map16_prg_dout, map16_irq};
+    16: {prg_aout, prg_allow, chr_aout, vram_a10, vram_ce, chr_allow, prg_dout, irq} = {map16_prg_addr, map16_prg_allow, map16_chr_addr, map16_vram_a10, map16_vram_ce, map16_chr_allow, map16_prg_dout, map16_irq};
     
-	 34: {prg_aout, prg_allow, chr_aout, vram_a10, vram_ce, chr_allow}      = {map34_prg_addr, map34_prg_allow, map34_chr_addr, map34_vram_a10, map34_vram_ce, map34_chr_allow};
+    34: {prg_aout, prg_allow, chr_aout, vram_a10, vram_ce, chr_allow}      = {map34_prg_addr, map34_prg_allow, map34_chr_addr, map34_vram_a10, map34_vram_ce, map34_chr_allow};
     41: {prg_aout, prg_allow, chr_aout, vram_a10, vram_ce, chr_allow}      = {map41_prg_addr, map41_prg_allow, map41_chr_addr, map41_vram_a10, map41_vram_ce, map41_chr_allow};
 
     64,
     158: {prg_aout, prg_allow, chr_aout, vram_a10, vram_ce, chr_allow, irq} = {rambo1_prg_addr, rambo1_prg_allow, rambo1_chr_addr, rambo1_vram_a10, rambo1_vram_ce, rambo1_chr_allow, rambo1_irq};
 
-	 42: {prg_aout, prg_allow, chr_aout, vram_a10, vram_ce, chr_allow, irq} = {map42_prg_addr, map42_prg_allow, map42_chr_addr, map42_vram_a10, map42_vram_ce, map42_chr_allow, map42_irq};
+    42: {prg_aout, prg_allow, chr_aout, vram_a10, vram_ce, chr_allow, irq} = {map42_prg_addr, map42_prg_allow, map42_chr_addr, map42_vram_a10, map42_vram_ce, map42_chr_allow, map42_irq};
 
     11,
     66: {prg_aout, prg_allow, chr_aout, vram_a10, vram_ce, chr_allow}      = {map66_prg_addr, map66_prg_allow, map66_chr_addr, map66_vram_a10, map66_vram_ce, map66_chr_allow};
-    */
+*/
     68: {prg_aout, prg_allow, chr_aout, vram_a10, vram_ce, chr_allow}      = {map68_prg_addr, map68_prg_allow, map68_chr_addr, map68_vram_a10, map68_vram_ce, map68_chr_allow};
-    /*
+/*
     69: {prg_aout, prg_allow, chr_aout, vram_a10, vram_ce, chr_allow, irq} = {map69_prg_addr, map69_prg_allow, map69_chr_addr, map69_vram_a10, map69_vram_ce, map69_chr_allow, map69_irq};
 
     71,
@@ -2219,7 +2217,8 @@ module MultiMapper(input clk, input ce, input ppu_ce, input reset,
     165: {prg_aout, prg_allow, chr_aout, vram_a10, vram_ce, chr_allow, irq} = {map165_prg_addr, map165_prg_allow, map165_chr_addr, map165_vram_a10, map165_vram_ce, map165_chr_allow, map165_irq};
 
     228: {prg_aout, prg_allow, chr_aout, vram_a10, vram_ce, chr_allow}     = {map228_prg_addr, map228_prg_allow, map228_chr_addr, map228_vram_a10, map228_vram_ce, map228_chr_allow};
-    234: {prg_aout, prg_allow, chr_aout, vram_a10, vram_ce, chr_allow}     = {map234_prg_addr, map234_prg_allow, map234_chr_addr, map234_vram_a10, map234_vram_ce, map234_chr_allow};*/
+    234: {prg_aout, prg_allow, chr_aout, vram_a10, vram_ce, chr_allow}     = {map234_prg_addr, map234_prg_allow, map234_chr_addr, map234_vram_a10, map234_vram_ce, map234_chr_allow};
+*/
     default: {prg_aout, prg_allow, chr_aout, vram_a10, vram_ce, chr_allow} = {mmc0_prg_addr, mmc0_prg_allow, mmc0_chr_addr, mmc0_vram_a10, mmc0_vram_ce, mmc0_chr_allow};
     endcase
     if (prg_aout[21:20] == 2'b00)
