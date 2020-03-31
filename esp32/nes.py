@@ -173,9 +173,10 @@ class nes:
     self.led.off()
 
   @micropython.viper
-  def osd_print(self, x:int, y:int, text):
+  def osd_print(self, x:int, y:int, i:int, text):
     p8msg=ptr8(addressof(self.spi_write_osd))
     a=0xF000+(x&63)+((y&31)<<6)
+    p8msg[2]=i
     p8msg[3]=a>>8
     p8msg[4]=a
     self.led.on()
@@ -204,17 +205,17 @@ class nes:
       highlight = 2
     i = y+self.fb_topitem
     if i >= len(self.direntries):
-      self.osd_print(0,y,"%64s" % "")
+      self.osd_print(0,y,0,"%64s" % "")
       return
     if self.direntries[i][1]: # directory
-      self.osd_print(0,y,"%c%-57s     D" % (self.highlight[highlight],self.direntries[i][0]))
+      self.osd_print(0,y,highlight,"%c%-57s     D" % (self.highlight[highlight],self.direntries[i][0]))
     else: # file
       mantissa = self.direntries[i][2]
       exponent = 0
       while mantissa >= 1024:
         mantissa >>= 10
         exponent += 1
-      self.osd_print(0,y,"%c%-57s %4d%c" % (self.highlight[highlight],self.direntries[i][0], mantissa, self.exp_names[exponent]))
+      self.osd_print(0,y,highlight,"%c%-57s %4d%c" % (self.highlight[highlight],self.direntries[i][0], mantissa, self.exp_names[exponent]))
 
   def show_dir(self):
     for i in range(self.screen_y):
@@ -274,7 +275,7 @@ def load(filename):
   n=nes()
   n.load(filename)
 
-ecp5.prog("nes.bit.gz")
-gc.collect()
 os.mount(SDCard(slot=3),"/sd")
+ecp5.prog("/sd/nes/bitstreams/nes12f_esp32_darfon.bit")
+gc.collect()
 n=nes()
