@@ -44,6 +44,7 @@ LIBTRELLIS ?= $(TRELLIS)/libtrellis
 BIT2SVF ?= $(TRELLIS)/tools/bit_to_svf.py
 #BASECFG ?= $(TRELLIS)/misc/basecfgs/empty_$(FPGA_CHIP_EQUIVALENT).config
 # yosys options, sometimes those can be used: -noccu2 -nomux -nodram
+#YOSYS_OPTIONS ?=
 YOSYS_OPTIONS ?= -abc9
 # nextpnr options
 NEXTPNR_OPTIONS ?=
