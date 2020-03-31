@@ -1,6 +1,6 @@
 module top
 #(
-  parameter C_usb_speed=1'b0,  // 0:6 MHz USB1.0, 1:48 MHz USB1.1
+  parameter C_usb_speed=0,  // 0:6 MHz USB1.0, 1:48 MHz USB1.1, -1: USB disabled,
   // xbox360 : C_report_bytes=20, C_report_bytes_strict=1
   // darfon  : C_report_bytes= 8, C_report_bytes_strict=1
   parameter C_report_bytes=8, // 8:usual joystick, 20:xbox360
@@ -152,11 +152,11 @@ module top
   wire loader_write;
 
   wire clk_usb;  // 6 MHz USB1.0 or 48 MHz USB1.1
-  generate if (C_usb_speed == 1'b0) begin: G_low_speed
+  generate if (C_usb_speed == 0) begin: G_low_speed
       assign clk_usb = clk_6MHz;
   end
   endgenerate
-  generate if (C_usb_speed == 1'b1) begin: G_full_speed
+  generate if (C_usb_speed == 1) begin: G_full_speed
       assign clk_usb = clk_48MHz;
   end
   endgenerate
@@ -165,6 +165,8 @@ module top
   assign usb_fpga_pu_dn = 1'b0;
   wire [C_report_bytes*8-1:0] S_report;
   wire S_report_valid;
+  wire [7:0] usb_buttons;
+  generate if (C_usb_speed >= 0) begin
   usbh_host_hid
   #(
     .C_usb_speed(C_usb_speed), // '0':Low-speed '1':Full-speed
@@ -184,7 +186,6 @@ module top
     .hid_valid(S_report_valid)
   );
   
-  wire [7:0] usb_buttons;
   usbh_report_decoder
   #(
     .c_autofire_hz(C_autofire_hz)
@@ -196,8 +197,11 @@ module top
     .i_report_valid(S_report_valid),
     .o_btn(usb_buttons)
   );
-  assign led = usb_buttons;
-  //assign led = {1'b0,btn};
+    assign led = usb_buttons;
+  end
+  else
+    assign led = {1'b0,btn};
+  endgenerate
   
   wire sys_reset;
 
