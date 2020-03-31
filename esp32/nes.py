@@ -26,7 +26,7 @@ class nes:
     self.cwd = "/"
     self.init_fb()
     self.exp_names = " KMGTE"
-    self.highlight = bytearray([32,16,42]) # space, right triangle, asterisk
+    self.mark = bytearray([32,16,42]) # space, right triangle, asterisk
     self.read_dir()
     self.spi_read_irq = bytearray([1,0,0,0,0,0,0])
     self.spi_read_btn = bytearray([1,0xFE,0,0,0,0,0])
@@ -198,24 +198,26 @@ class nes:
   def show_dir_line(self, y):
     if y < 0 or y >= self.screen_y:
       return
-    highlight = 0
+    mark = 0
+    invert = 0
     if y == self.fb_cursor - self.fb_topitem:
-      highlight = 1
+      mark = 1
+      invert = 1
     if y == self.fb_selected - self.fb_topitem:
-      highlight = 2
+      mark = 2
     i = y+self.fb_topitem
     if i >= len(self.direntries):
       self.osd_print(0,y,0,"%64s" % "")
       return
     if self.direntries[i][1]: # directory
-      self.osd_print(0,y,highlight,"%c%-57s     D" % (self.highlight[highlight],self.direntries[i][0]))
+      self.osd_print(0,y,invert,"%c%-57s     D" % (self.mark[mark],self.direntries[i][0]))
     else: # file
       mantissa = self.direntries[i][2]
       exponent = 0
       while mantissa >= 1024:
         mantissa >>= 10
         exponent += 1
-      self.osd_print(0,y,highlight,"%c%-57s %4d%c" % (self.highlight[highlight],self.direntries[i][0], mantissa, self.exp_names[exponent]))
+      self.osd_print(0,y,invert,"%c%-57s %4d%c" % (self.mark[mark],self.direntries[i][0], mantissa, self.exp_names[exponent]))
 
   def show_dir(self):
     for i in range(self.screen_y):
