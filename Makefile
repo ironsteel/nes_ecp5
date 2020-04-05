@@ -1,11 +1,13 @@
 PROJ=nes
-FPGA_SIZE ?= 12
+FPGA_PREFIX ?=
+#FPGA_PREFIX ?= um5g-
+FPGA_SIZE ?= 85
 
-FPGA_KS ?= $(FPGA_SIZE)k
+FPGA_KS ?= $(FPGA_PREFIX)$(FPGA_SIZE)k
 
 ifeq ($(FPGA_SIZE), 12)
   CHIP_ID=0x21111043
-  FPGA_KS = 25k
+  FPGA_KS = $(FPGA_PREFIX)25k
 endif
 ifeq ($(FPGA_SIZE), 25)
   CHIP_ID=0x41111043
@@ -14,8 +16,9 @@ ifeq ($(FPGA_SIZE), 45)
   CHIP_ID=0x41112043
 endif
 ifeq ($(FPGA_SIZE), 85)
-  CHIP_ID=0x41113043
+  CHIP_ID=0x41113043 # forksand board: 0x81113043
 endif
+
 
 IDCODE ?= $(CHIP_ID)
 
