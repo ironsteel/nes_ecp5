@@ -45,10 +45,12 @@ module usbh_report_decoder
   wire usbjoyl_r     =  (i_report[ 7:6 ] == 2'b11 ? 1'b1 : 1'b0);
   wire usbjoyl_u     =  (i_report[15:14] == 2'b00 ? 1'b1 : 1'b0);
   wire usbjoyl_d     =  (i_report[15:14] == 2'b11 ? 1'b1 : 1'b0);
+  wire usbjoyl_btn   =   i_report[54];
   wire usbjoyr_l     =  (i_report[31:30] == 2'b00 ? 1'b1 : 1'b0);
   wire usbjoyr_r     =  (i_report[31:30] == 2'b11 ? 1'b1 : 1'b0);
   wire usbjoyr_u     =  (i_report[39:38] == 2'b00 ? 1'b1 : 1'b0);
   wire usbjoyr_d     =  (i_report[39:38] == 2'b11 ? 1'b1 : 1'b0);
+  wire usbjoyr_btn   =   i_report[55];
   wire usbjoy_a      =   i_report[46] | i_report[44]; // A or Y
   wire autofire_a    = ((i_report[50] | i_report[49]) & R_autofire[c_autofire_bits-1]); // A : ltrigger | rbumper
   wire usbjoy_b      =   i_report[45] | i_report[47]; // B or X 
@@ -63,10 +65,10 @@ module usbh_report_decoder
     if(i_report_valid)
       R_btn <=
       {
-        usbjoyl_r|usbjoyr_r|R_hat_udlr[0],
-        usbjoyl_l|usbjoyr_l|R_hat_udlr[1],
-        usbjoyl_d|usbjoyr_d|R_hat_udlr[2],
-        usbjoyl_u|usbjoyr_u|R_hat_udlr[3],
+        usbjoyl_btn|usbjoyr_btn|usbjoyl_r|usbjoyr_r|R_hat_udlr[0],
+        usbjoyl_btn|usbjoyr_btn|usbjoyl_l|usbjoyr_l|R_hat_udlr[1],
+        usbjoyl_btn|usbjoyr_btn|usbjoyl_d|usbjoyr_d|R_hat_udlr[2],
+        usbjoyl_btn|usbjoyr_btn|usbjoyl_u|usbjoyr_u|R_hat_udlr[3],
         usbjoy_start, usbjoy_select, usbjoy_b, usbjoy_a
       };
   end
