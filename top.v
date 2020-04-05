@@ -6,6 +6,7 @@ module top
   parameter C_report_bytes=8, // 8:usual joystick, 20:xbox360
   parameter C_report_bytes_strict=1, // 0:when report length is variable/unknown
   parameter C_autofire_hz=10,
+  parameter C_osd_usb=1, // 0:OSD onboard BTN's 1:OSD USB joystick
   // choose one: C_flash_loader or C_esp32_loader
   parameter C_flash_loader=0,
   parameter C_esp32_loader=1 // usage: import spiram; spiram.load("pacman.img")
@@ -202,7 +203,7 @@ module top
   else
     assign led = {1'b0,btn};
   endgenerate
-  
+
   wire sys_reset;
 
   generate
@@ -280,7 +281,20 @@ module top
         R_btn_irq <= 1'b0;
       else // BTN state is read from 0xFExxxxxx
       begin
-        R_btn_latch <= {1'b0,btn};
+        if(C_osd_usb)
+          R_btn_latch <=
+          {
+            1'b0,
+            usb_buttons[7], // 6 right
+            usb_buttons[6], // 5 left
+            usb_buttons[5], // 4 down
+            usb_buttons[4], // 3 up
+            1'b0,           // 2 B
+            1'b0,           // 1 A
+            1'b1            // 0 start
+          };
+        else
+          R_btn_latch <= {1'b0,btn};
         if(R_btn != R_btn_latch && R_btn_debounce[$bits(R_btn_debounce)-1] == 1 && R_btn_irq == 0)
         begin
           R_btn_irq <= 1'b1;
@@ -294,6 +308,7 @@ module top
     end
     assign wifi_gpio0 = ~R_btn_irq; // interrupt line, active on falling edge
     //assign led = {R_btn_irq,btn};
+    //assign led = R_btn_latch;
   end
   endgenerate
 
