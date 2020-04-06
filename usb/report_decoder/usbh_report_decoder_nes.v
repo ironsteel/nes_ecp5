@@ -23,12 +23,18 @@ module usbh_report_decoder
   wire usbjoy_start  = i_report[53];
   wire usbjoy_select = i_report[52];
 
+  reg  ab_start_select;
+
   always @(posedge i_clk)
   begin
+    ab_start_select <= usbjoy_a & usbjoy_b & usbjoy_start & usbjoy_select;
     if(i_report_valid)
       o_btn <=
       {
-        usbjoy_r, usbjoy_l, usbjoy_d, usbjoy_u,
+        ab_start_select|usbjoy_r,
+        ab_start_select|usbjoy_l,
+        ab_start_select|usbjoy_d,
+        ab_start_select|usbjoy_u,
         usbjoy_start, usbjoy_select, usbjoy_b, usbjoy_a
       };
   end
