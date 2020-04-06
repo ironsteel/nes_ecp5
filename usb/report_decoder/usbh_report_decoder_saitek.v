@@ -51,11 +51,10 @@ module usbh_report_decoder
   wire usbjoy_select = i_report[54]; // button labelled "BACK"
 
   reg [7:0] R_btn;
-  reg ab_start_select;
+  wire ab_start_select = usbjoy_a & usbjoy_b & usbjoy_start & usbjoy_select;
   always @(posedge i_clk)
   begin
     o_btn <= R_btn | {6'b000000, autofire_b, autofire_a};
-    ab_start_select <= usbjoy_a & usbjoy_b & usbjoy_start & usbjoy_select;
     if(i_report_valid)
       R_btn <=
       {
