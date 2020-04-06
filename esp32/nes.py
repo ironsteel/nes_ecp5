@@ -11,7 +11,7 @@
 # SPI_write(buffer)
 # FPGA SPI slave will accept image and start it
 
-from machine import SPI, Pin, SDCard
+from machine import SPI, Pin, SDCard, Timer
 from micropython import const, alloc_emergency_exception_buf
 from uctypes import addressof
 import os
@@ -42,6 +42,7 @@ class nes:
     self.hwspi=SPI(self.spi_channel, baudrate=self.spi_freq, polarity=0, phase=0, bits=8, firstbit=SPI.MSB, sck=Pin(self.gpio_sck), mosi=Pin(self.gpio_mosi), miso=Pin(self.gpio_miso))
     alloc_emergency_exception_buf(100)
     self.enable = bytearray(1)
+    self.timer = Timer(3)
     self.irq_handler(0)
     self.irq_handler_ref = self.irq_handler # allocation happens here
     self.spi_request = Pin(0, Pin.IN, Pin.PULL_UP)
@@ -82,13 +83,27 @@ class nes:
           self.osd_enable(p8enable[0]&1)
         if p8enable[0]==1:
           if btn==9: # btn3 cursor up
-            self.move_dir_cursor(-1)
+            self.start_autorepeat(-1)
           if btn==17: # btn4 cursor down
-            self.move_dir_cursor(1)
+            self.start_autorepeat(1)
+          if btn==1:
+            self.timer.deinit() # stop autorepeat
           if btn==33: # btn6 cursor left
             self.updir()
           if btn==65: # btn6 cursor right
             self.select_entry()
+
+  def start_autorepeat(self, i:int):
+    self.autorepeat_direction=i
+    self.move_dir_cursor(i)
+    self.timer_slow=1
+    self.timer.init(mode=Timer.PERIODIC, period=500, callback=self.autorepeat)
+
+  def autorepeat(self, timer):
+    if self.timer_slow:
+      self.timer_slow=0
+      self.timer.init(mode=Timer.PERIODIC, period=30, callback=self.autorepeat)
+    self.move_dir_cursor(self.autorepeat_direction)
 
   def select_entry(self):
     if self.direntries[self.fb_cursor][1]: # is it directory
