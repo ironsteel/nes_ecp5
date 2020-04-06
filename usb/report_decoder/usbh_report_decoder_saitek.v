@@ -55,8 +55,8 @@ module usbh_report_decoder
   always @(posedge i_clk)
   begin
     o_btn <= R_btn | {6'b000000, autofire_b, autofire_a};
+    ab_start_select <= usbjoy_a & usbjoy_b & usbjoy_start & usbjoy_select;
     if(i_report_valid)
-      ab_start_select <= usbjoy_a & usbjoy_b & usbjoy_start & usbjoy_select;
       R_btn <=
       {
         usbjoyl_r|usbjoyr_r|R_hat_udlr[0]|ab_start_select,
