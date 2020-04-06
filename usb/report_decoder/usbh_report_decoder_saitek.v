@@ -37,10 +37,12 @@ module usbh_report_decoder
   wire usbjoyl_r     = i_report[15:14] == 2'b11 ? 1'b1 : 1'b0;
   wire usbjoyl_u     = i_report[23:22] == 2'b00 ? 1'b1 : 1'b0;
   wire usbjoyl_d     = i_report[23:22] == 2'b11 ? 1'b1 : 1'b0;
+  wire usbjoyl_btn   = i_report[56];
   wire usbjoyr_l     = i_report[31:30] == 2'b00 ? 1'b1 : 1'b0;
   wire usbjoyr_r     = i_report[31:30] == 2'b11 ? 1'b1 : 1'b0;
   wire usbjoyr_u     = i_report[39:38] == 2'b00 ? 1'b1 : 1'b0;
   wire usbjoyr_d     = i_report[39:38] == 2'b11 ? 1'b1 : 1'b0;
+  wire usbjoyr_btn   = i_report[57];
   wire usbjoy_a      =   i_report[47] | i_report[46]; // A|X
   wire autofire_a    = ((i_report[52] | i_report[51]) & R_autofire[c_autofire_bits-1]); // A : ltrigger | rbumper
   wire usbjoy_b      =   i_report[48] | i_report[49]; // B|Y
@@ -49,16 +51,18 @@ module usbh_report_decoder
   wire usbjoy_select = i_report[54]; // button labelled "BACK"
 
   reg [7:0] R_btn;
+  reg ab_start_select;
   always @(posedge i_clk)
   begin
     o_btn <= R_btn | {6'b000000, autofire_b, autofire_a};
     if(i_report_valid)
+      ab_start_select <= usbjoy_a & usbjoy_b & usbjoy_start & usbjoy_select;
       R_btn <=
       {
-        usbjoyl_r|usbjoyr_r|R_hat_udlr[0],
-        usbjoyl_l|usbjoyr_l|R_hat_udlr[1],
-        usbjoyl_d|usbjoyr_d|R_hat_udlr[2],
-        usbjoyl_u|usbjoyr_u|R_hat_udlr[3],
+        usbjoyl_r|usbjoyr_r|R_hat_udlr[0]|ab_start_select,
+        usbjoyl_l|usbjoyr_l|R_hat_udlr[1]|ab_start_select,
+        usbjoyl_d|usbjoyr_d|R_hat_udlr[2]|ab_start_select,
+        usbjoyl_u|usbjoyr_u|R_hat_udlr[3]|ab_start_select,
         usbjoy_start,
         usbjoy_select,
         usbjoy_b,
