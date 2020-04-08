@@ -21,12 +21,6 @@ module top
   input  flash_miso,
 
   output [7:0]  led,
-  // VGA
-  output        VGA_HS,
-  output        VGA_VS,
-  output [3:0]  VGA_R,
-  output [3:0]  VGA_G,
-  output [3:0]  VGA_B,
   // DVI out
   output [3:0] gpdi_dp,
 
@@ -40,12 +34,6 @@ module top
   output  [1:0] sdram_ba, // SDRAM bank-address
   output  [1:0] sdram_dqm,// byte select
   inout  [15:0] sdram_d,  // data bus to/from SDRAM
-
-  //input use_external_nes_joypad,
-
-  input  joy_data,
-  output joy_strobe,
-  output joy_clock,
 
   input  [6:0] btn,
 
@@ -78,6 +66,13 @@ module top
   wire  btn_down  =  btn[4];
   wire  btn_left  =  btn[5];
   wire  btn_right =  btn[6];
+
+/*
+  input  joy_data,
+  output joy_strobe,
+  output joy_clock,
+*/
+  wire  joy_data, joy_strobe, joy_clock;
 
   // passthru to ESP32 micropython serial console
   assign wifi_rxd = ftdi_txd;
@@ -505,7 +500,6 @@ module top
   ODDRX1F ddr_green (.D0(tmds[1][0]), .D1(tmds[1][1]), .Q(gpdi_dp[1]), .SCLK(clk_shift), .RST(0));
   ODDRX1F ddr_blue  (.D0(tmds[0][0]), .D1(tmds[0][1]), .Q(gpdi_dp[0]), .SCLK(clk_shift), .RST(0));
 
-  assign audio_sample[7:0] = {8{audio}};
   wire audio;
   sigma_delta_dac
   sigma_delta_dac
@@ -516,4 +510,5 @@ module top
     .RESET(reset_nes),
     .CEN(run_nes)
   );
+  assign audio_sample[7:0] = {8{audio}};
 endmodule
