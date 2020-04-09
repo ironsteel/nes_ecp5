@@ -1,18 +1,20 @@
 module top
 #(
+  parameter use_external_nes_joypad=0,
+  parameter C_audio=2, // 0: direct 4-bit, 1: 1-bit DAC, 2: 4-bit DAC
   parameter C_usb_speed=0,  // 0:6 MHz USB1.0, 1:48 MHz USB1.1, -1: USB disabled,
   // xbox360 : C_report_bytes=20, C_report_bytes_strict=1
   // darfon  : C_report_bytes= 8, C_report_bytes_strict=1
   parameter C_report_bytes=8, // 8:usual joystick, 20:xbox360
   parameter C_report_bytes_strict=1, // 0:when report length is variable/unknown
-  parameter C_autofire_hz=10,
+  parameter C_autofire_hz=10, // joystick trigger and bumper
   parameter C_osd_usb=1, // 0:OSD onboard BTN's 1:OSD USB joystick
   // choose one: C_flash_loader or C_esp32_loader
-  parameter C_flash_loader=0,
-  parameter C_esp32_loader=1 // usage: import spiram; spiram.load("pacman.img")
+  parameter C_flash_loader=0, // fujprog -j flash -f 0x200000 100in1.img
+  parameter C_esp32_loader=1 // usage: import nes # for OSD press together A B SELECT START or all 4 directions
 )
 (
-  input  clk25,
+  input  clk_25mhz,
 `ifdef SIM
   output flash_sck,
 `endif
@@ -21,8 +23,6 @@ module top
   input  flash_miso,
 
   output [7:0]  led,
-  // DVI out
-  output [3:0] gpdi_dp,
 
   output sdram_csn,       // chip select
   output sdram_clk,       // clock to SDRAM
@@ -35,7 +35,7 @@ module top
   output  [1:0] sdram_dqm,// byte select
   inout  [15:0] sdram_d,  // data bus to/from SDRAM
 
-  input  [6:0] btn,
+  input   [6:0] btn,
 
   input  usb_fpga_dp,
   inout  usb_fpga_bd_dp,
@@ -53,12 +53,14 @@ module top
   input  wifi_gpio16,
 
   inout  sd_clk, sd_cmd,
-  inout  [3:0] sd_d,
+  inout   [3:0] sd_d,
 
-  output [7:0] audio_sample
+  inout  [27:0] gp, gn,
+
+  // DVI out
+  output  [3:0] gpdi_dp,
+  output  [3:0] audio_l, audio_r
 );
-  parameter  use_external_nes_joypad = 1'b0;
-
   wire  btn_start = ~btn[0];
   wire  btn_b     =  btn[1];
   wire  btn_a     =  btn[2];
@@ -67,12 +69,6 @@ module top
   wire  btn_left  =  btn[5];
   wire  btn_right =  btn[6];
 
-/*
-  input  joy_data,
-  output joy_strobe,
-  output joy_clock,
-*/
-  wire  joy_data, joy_strobe, joy_clock;
 
   // passthru to ESP32 micropython serial console
   assign wifi_rxd = ftdi_txd;
@@ -87,7 +83,7 @@ module top
   clk_25_125_48_6_25
   clk_dvi_usb_inst
   (
-    .clk25_i(clk25),
+    .clk25_i(clk_25mhz),
     .clk125_o(clk_125MHz),
     .clk48_o(clk_48MHz),
     .clk6_o(clk_6MHz),
@@ -103,7 +99,7 @@ module top
   clocks
   clocks_inst
   (
-    .clock25(clk25),
+    .clock25(clk_25mhz),
     .clock21(clock),
     .clock85(clock_sdram),
     .clock_locked(clock_locked)
@@ -117,8 +113,13 @@ module top
 
   reg [23:0] R_reset = 24'hFFFFFF;
   always @(posedge clock)
-    if(R_reset[23] && clock_locked)
-      R_reset <= R_reset-1;
+  begin
+    if(clock_locked == 0 || dvi_clock_locked == 0)
+      R_reset <= 24'hFFFFFF;
+    else
+      if(R_reset[23])
+        R_reset <= R_reset-1;
+  end
 
   wire scandoubler_disable;
 
@@ -390,22 +391,39 @@ module top
   reg last_joypad_clock;
   reg [7:0] joypad_bits;
   reg [7:0] buttons;
-  always @(posedge clock) begin
-    buttons <= {btn_right, btn_left, btn_down, btn_up, btn_start, btn_select, btn_b, btn_a};
-    if (joy_strobe) begin
-      if (use_external_nes_joypad)
-        joypad_bits[0] <= !joy_data;
-      else
-        joypad_bits <= buttons | usb_buttons;
+
+  reg [6:0] R_buttons;
+  wire  joy_data, joy_strobe, joy_clock;
+  generate
+    if(use_external_nes_joypad)
+    begin
+      assign gp[0] = 1'bz;
+      assign joy_data = gp[0];
+      assign gp[1] = joy_strobe;
+      assign gp[2] = joy_clock;
+      always @(posedge clock)
+      begin
+        if (joy_strobe || (!joy_clock && last_joypad_clock) )
+          joypad_bits[0] <= !joy_data;
+        last_joypad_clock <= joy_clock;
+      end
     end
-    if (!joy_clock && last_joypad_clock) begin
-      if (use_external_nes_joypad)
-        joypad_bits[0] <= !joy_data;
-      else
-        joypad_bits <= {1'b0, joypad_bits[7:1]};
+    else // use_external_nes_joypad == 0: control using USB or onboard buttons
+    begin
+      always @(posedge clock)
+      begin
+        R_buttons <= {btn_right, btn_left, btn_down, btn_up, btn_start, btn_select, btn_b, btn_a};
+        if (joy_strobe)
+          joypad_bits <= R_buttons | usb_buttons;
+        else
+        begin
+          if (!joy_clock && last_joypad_clock)
+            joypad_bits <= {1'b0, joypad_bits[7:1]};
+        end
+        last_joypad_clock <= joy_clock;
+      end
     end
-    last_joypad_clock <= joy_clock;
-  end
+  endgenerate
 
   wire [31:0] dbgadr;
   wire [2:0] dbgctr;
@@ -500,15 +518,44 @@ module top
   ODDRX1F ddr_green (.D0(tmds[1][0]), .D1(tmds[1][1]), .Q(gpdi_dp[1]), .SCLK(clk_shift), .RST(0));
   ODDRX1F ddr_blue  (.D0(tmds[0][0]), .D1(tmds[0][1]), .Q(gpdi_dp[0]), .SCLK(clk_shift), .RST(0));
 
-  wire audio;
-  sigma_delta_dac
-  sigma_delta_dac
-  (
-    .DACout(audio),
-    .DACin(sample),
-    .CLK(clock),
-    .RESET(reset_nes),
-    .CEN(run_nes)
-  );
-  assign audio_sample[7:0] = {8{audio}};
+  wire [3:0] audio;
+  generate
+    if(C_audio==0)
+      assign audio = sample[$bits(sample)-1:$bits(sample)-$bits(audio)];
+    if(C_audio==1)
+    begin
+      wire dac1bit;
+      sigma_delta_dac
+      sigma_delta_dac_instance
+      (
+        .CLK(clock),
+        .RESET(reset_nes),
+        .CEN(run_nes),
+        .DACin(sample),
+        .DACout(dac1bit)
+      );
+      assign audio = {4{dac1bit}};
+    end
+    if(C_audio==2)
+    begin
+      wire dac1bit;
+      sigma_delta_dac
+      #(
+        .MSBI(11)
+      )
+      sigma_delta_dac_instance
+      (
+        .CLK(clock),
+        .RESET(reset_nes),
+        .CEN(run_nes),
+        .DACin(sample[11:0]),
+        .DACout(dac1bit)
+      );
+      wire [$bits(audio)-1:0] dac0 = sample[$bits(sample)-1:$bits(sample)-$bits(audio)];
+      wire [$bits(audio)-1:0] dac1 = sample[$bits(sample)-1:$bits(sample)-$bits(audio)] + 1;
+      assign audio = dac1bit ? dac1 : dac0;
+    end
+  endgenerate
+  assign audio_l = audio;
+  assign audio_r = audio;
 endmodule
