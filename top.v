@@ -1,7 +1,7 @@
 module top
 #(
   parameter use_external_nes_joypad=0,
-  parameter C_audio=2, // 0: direct 4-bit, 1: 1-bit DAC, 2: 4-bit DAC
+  parameter C_audio=2, // 0: direct MSB 4->4 bit DAC, 1: 16->1 bit PWM-DAC, 2: 16->4 bit PWM-DAC
   parameter C_usb_speed=0,  // 0:6 MHz USB1.0, 1:48 MHz USB1.1, -1: USB disabled,
   // xbox360 : C_report_bytes=20, C_report_bytes_strict=1
   // darfon  : C_report_bytes= 8, C_report_bytes_strict=1
