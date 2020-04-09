@@ -1,12 +1,15 @@
-module sigma_delta_dac(
-   output    reg             DACout,   //Average Output feeding analog lowpass
-   input          [MSBI:0]    DACin,   //DAC input (excess 2**MSBI)
-   input                  CLK,
-   input                  CEN,
-   input                   RESET
+module sigma_delta_dac
+#(
+   parameter MSBI = 15
+)
+(
+   input           CLK,
+   input           CEN,
+   input           RESET,
+   input  [MSBI:0] DACin,   //DAC input (excess 2**MSBI)
+   output reg      DACout   //Average Output feeding analog lowpass
 );
 
-parameter MSBI = 15;
 
 reg [MSBI+2:0] DeltaAdder;   //Output of Delta Adder
 reg [MSBI+2:0] SigmaAdder;   //Output of Sigma Adder
