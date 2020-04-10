@@ -8,7 +8,7 @@ module top
   parameter C_report_bytes=8, // 8:usual joystick, 20:xbox360
   parameter C_report_bytes_strict=1, // 0:when report length is variable/unknown
   parameter C_autofire_hz=10, // joystick trigger and bumper
-  parameter C_osd_usb=1, // 0:OSD onboard BTN's 1:OSD USB joystick
+  parameter C_osd_usb=2, // 0:OSD onboard BTN's, 1:OSD USB joystick, 2:both
   // choose one: C_flash_loader or C_esp32_loader
   parameter C_flash_loader=0, // fujprog -j flash -f 0x200000 100in1.img
   parameter C_esp32_loader=1 // usage: import nes # for OSD press together A B SELECT START or all 4 directions
@@ -277,7 +277,9 @@ module top
         R_btn_irq <= 1'b0;
       else // BTN state is read from 0xFExxxxxx
       begin
-        if(C_osd_usb)
+        if(C_osd_usb==0)
+          R_btn_latch <= {1'b0,btn};
+        if(C_osd_usb==1)
           R_btn_latch <=
           {
             1'b0,
@@ -289,8 +291,18 @@ module top
             1'b0,           // 1 A
             1'b1            // 0 start
           };
-        else
-          R_btn_latch <= {1'b0,btn};
+        if(C_osd_usb==2)
+          R_btn_latch <= {1'b0,btn} |
+          {
+            1'b0,
+            usb_buttons[7], // 6 right
+            usb_buttons[6], // 5 left
+            usb_buttons[5], // 4 down
+            usb_buttons[4], // 3 up
+            1'b0,           // 2 B
+            1'b0,           // 1 A
+            1'b1            // 0 start
+          };
         if(R_btn != R_btn_latch && R_btn_debounce[$bits(R_btn_debounce)-1] == 1 && R_btn_irq == 0)
         begin
           R_btn_irq <= 1'b1;
@@ -392,7 +404,7 @@ module top
   reg [7:0] joypad_bits;
   reg [7:0] buttons;
 
-  reg [6:0] R_buttons;
+  reg [7:0] R_buttons;
   wire  joy_data, joy_strobe, joy_clock;
   generate
     if(use_external_nes_joypad)
