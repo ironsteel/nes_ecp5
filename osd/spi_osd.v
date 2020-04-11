@@ -10,7 +10,7 @@ module spi_osd
   parameter c_init_on   = 1,   // 0:default OFF 1:default ON
   parameter c_inverse   = 1,   // 0:no inverse, 1:inverse support
   parameter c_char_file = "osd.mem", // initial window content, 2 ASCII HEX digits per line
-  parameter c_font_file = "font_vga.mem" // font bitmap, 2 ASCII HEX digits per line
+  parameter c_font_file = "font_bizcat8x16.mem" // font bitmap, 2 ASCII HEX digits per line
 )
 (
   input  wire clk_pixel, clk_pixel_ena,
@@ -71,7 +71,7 @@ module spi_osd
     wire [9:0] osd_x, osd_y;
     reg [7:0] font[0:4095];
     initial
-      $readmemh(c_font_file, font);
+      $readmemb(c_font_file, font);
     reg [7:0] data_out;
     wire [11:0] tileaddr = (osd_y >> 4) * c_chars_x + (osd_x >> 3);
     generate
