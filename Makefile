@@ -33,7 +33,6 @@ YOSYS ?= yosys
 #NEXTPNR-ECP5 ?= /mt/scratch/tmp/openfpga/nextpnr/nextpnr-ecp5
 NEXTPNR-ECP5 ?= nextpnr-ecp5
 # https://github.com/SymbiFlow/prjtrellis
-#TRELLIS ?= /mt/scratch/tmp/openfpga/prjtrellis
 TRELLIS ?= /mt/scratch/tmp/openfpga/prjtrellis
 
 # open source synthesis tools
@@ -47,10 +46,11 @@ LIBTRELLIS ?= $(TRELLIS)/libtrellis
 BIT2SVF ?= $(TRELLIS)/tools/bit_to_svf.py
 #BASECFG ?= $(TRELLIS)/misc/basecfgs/empty_$(FPGA_CHIP_EQUIVALENT).config
 # yosys options, sometimes those can be used: -noccu2 -nomux -nodram
-#YOSYS_OPTIONS ?=
-YOSYS_OPTIONS ?= -abc9
+YOSYS_OPTIONS ?= -nowidelut
+#YOSYS_OPTIONS ?= -abc9
 # nextpnr options
-NEXTPNR_OPTIONS ?=
+#NEXTPNR_OPTIONS ?=
+NEXTPNR_OPTIONS ?= --timing-allow-fail
 #NEXTPNR_OPTIONS ?= --timing-allow-fail
 
 CLK0_NAME = clk_25_125_48_6_25
@@ -68,17 +68,70 @@ CLK0_OPTIONS = \
   --clkout3_name=clk25_o \
   --clkout3=25
 
-all: ${PROJ}.bit
+all: ${PROJ}.bit ${PROJ}.json
 
 $(CLK0_NAME).v:
 	$(ECPPLL) $(CLK0_OPTIONS) --file $@
 
-VERILOG_FILES = $(wildcard *.v)
+VERILOG_FILES = top.v
+VERILOG_FILES += $(CLK0_FILE_NAME) 
+VERILOG_FILES += nes.v
+VERILOG_FILES += ppu.sv
+VERILOG_FILES += apu.sv
+VERILOG_FILES += cart.sv
+VERILOG_FILES += dpram.v
+VERILOG_FILES += mappers/generic.sv
+VERILOG_FILES += mappers/MMC1.sv
+VERILOG_FILES += mappers/MMC2.sv
+VERILOG_FILES += mappers/MMC3.sv
+VERILOG_FILES += mappers/MMC5.sv
+VERILOG_FILES += mappers/VRC.sv
+VERILOG_FILES += mappers/misc.sv
+VERILOG_FILES += mappers/Namco.sv
+#VERILOG_FILES += mappers/Sunsoft.sv
+VERILOG_FILES += mappers/JYCompany.sv
+VERILOG_FILES += mappers/Sachen.sv
 
-%.json: $(VERILOG_FILES)
-	$(YOSYS) -q -l synth.log \
+VERILOG_FILES += compat.v
+VERILOG_FILES += sdram.v
+VERILOG_FILES += game_loader.v
+VERILOG_FILES += flash_loader.v
+VERILOG_FILES += pll.v
+VERILOG_FILES += palette_ram.v
+VERILOG_FILES += vga.v
+VERILOG_FILES += framebuffer.v
+VERILOG_FILES += clocks.v
+VERILOG_FILES += sigma_delta_dac.v
+VERILOG_FILES += vga2dvid.v
+VERILOG_FILES += flashmem.v
+VERILOG_FILES += tmds_encoder.v
+
+VERILOG_FILES += osd/osd.v         
+VERILOG_FILES += osd/spi_osd.v   
+VERILOG_FILES += osd/spirw_slave_v.v
+
+VERILOG_FILES += usb/report_decoder/usbh_report_decoder_darfon.v
+
+VERILOG_FILES += usb/usbhost/usbh_crc16.v
+VERILOG_FILES += usb/usbhost/usbh_crc5.v
+VERILOG_FILES += usb/usbhost/usbh_host_hid.v
+VERILOG_FILES += usb/usbhost/usbh_sie.v
+
+VERILOG_FILES += usb/usb11_phy_vhdl/usb_phy.v
+VERILOG_FILES += usb/usb11_phy_vhdl/usb_rx_phy.v
+VERILOG_FILES += usb/usb11_phy_vhdl/usb_tx_phy.v
+
+VHDL_FILES = t65/T65_Pack.vhd
+VHDL_FILES += t65/T65_MCode.vhd
+VHDL_FILES += t65/T65_ALU.vhd
+VHDL_FILES += t65/T65.vhd
+
+%.json: ${VERILOG_FILES} ${VHDL_FILES}
+	$(YOSYS) -mghdl -q -l synth.log \
+	-p "ghdl --std=08 --ieee=synopsys ${VHDL_FILES} -e t65" \
+	-p "read_verilog -sv ${VERILOG_FILES}" \
 	-p "hierarchy -top top" \
-	-p "synth_ecp5 ${YOSYS_OPTIONS} -json $@" $^
+	-p "synth_ecp5 ${YOSYS_OPTIONS} -json $@"
 
 #        -p "read -vlog2k ${VERILOG_FILES}" \
 
