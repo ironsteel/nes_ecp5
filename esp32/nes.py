@@ -28,7 +28,7 @@ class nes:
     self.exp_names = " KMGTE"
     self.mark = bytearray([32,16,42]) # space, right triangle, asterisk
     self.read_dir()
-    self.spi_read_irq = bytearray([1,0,0,0,0,0,0])
+    self.spi_read_irq = bytearray([1,0xF1,0,0,0,0,0])
     self.spi_read_btn = bytearray([1,0xFE,0,0,0,0,0])
     self.spi_result = bytearray(7)
     self.spi_reset_nes = bytearray([0,0xFF,0,0,0,1])
@@ -104,6 +104,7 @@ class nes:
       self.timer_slow=0
       self.timer.init(mode=Timer.PERIODIC, period=30, callback=self.autorepeat)
     self.move_dir_cursor(self.autorepeat_direction)
+    self.irq_handler(0) # handle stale IRQ
 
   def select_entry(self):
     if self.direntries[self.fb_cursor][1]: # is it directory
