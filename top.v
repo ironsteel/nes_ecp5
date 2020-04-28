@@ -262,7 +262,7 @@ module top
     always @(posedge clock)
       if(spi_rd)
       begin
-        if(spi_addr[31:24] == 8'h00)
+        if(spi_addr[31:24] == 8'hF1)
           R_spi_data_in <= {R_btn_irq,7'd0};
         else
           R_spi_data_in <= {1'b0,R_btn};
@@ -273,7 +273,7 @@ module top
     always @(posedge clock)
     begin
       R_spi_rd <= spi_rd;
-      if(spi_rd == 1'b0 && R_spi_rd == 1'b1 && spi_addr[31:24] == 8'h00)
+      if(spi_rd == 1'b0 && R_spi_rd == 1'b1 && spi_addr[31:24] == 8'hF1)
         R_btn_irq <= 1'b0;
       else // BTN state is read from 0xFExxxxxx
       begin
