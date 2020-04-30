@@ -92,7 +92,6 @@ VERILOG_FILES += mappers/Namco.sv
 VERILOG_FILES += mappers/JYCompany.sv
 VERILOG_FILES += mappers/Sachen.sv
 
-VERILOG_FILES += compat.v
 VERILOG_FILES += sdram.v
 VERILOG_FILES += game_loader.v
 VERILOG_FILES += flash_loader.v
