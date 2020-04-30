@@ -15,9 +15,6 @@ module top
 )
 (
   input  clk_25mhz,
-`ifdef SIM
-  output flash_sck,
-`endif
   output flash_csn,
   output flash_mosi,
   input  flash_miso,
@@ -105,11 +102,9 @@ module top
     .clock_locked(clock_locked)
   );
 
-`ifndef SIM
   wire flash_sck;
   wire tristate = 1'b0;
   USRMCLK u1 (.USRMCLKI(flash_sck), .USRMCLKTS(tristate));
-`endif
 
   reg [23:0] R_reset = 24'hFFFFFF;
   always @(posedge clock)
