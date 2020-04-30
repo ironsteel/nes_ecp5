@@ -142,13 +142,13 @@ VHDL_FILES += t65/T65.vhd
 	LANG=C LD_LIBRARY_PATH=$(LIBTRELLIS) $(ECPPACK) --db $(TRELLISDB) --compress --idcode $(IDCODE) $< $@
 
 prog: ${PROJ}.bit
-	ujprog $<
+	fujprog $<
 
 prog_flash: ${PROJ}.bit
-	ujprog -j FLASH $<
+	fujprog -j FLASH $<
 
 prog_game: rom/game_tilt.img
-	ujprog -j FLASH -f 0x200000 $<
+	fujprog -j FLASH -f 0x200000 $<
 
 
 clean:
