@@ -15,9 +15,6 @@ module top
 )
 (
   input  clk_25mhz,
-`ifdef SIM
-  output flash_sck,
-`endif
   output flash_csn,
   output flash_mosi,
   input  flash_miso,
@@ -105,11 +102,9 @@ module top
     .clock_locked(clock_locked)
   );
 
-`ifndef SIM
   wire flash_sck;
   wire tristate = 1'b0;
   USRMCLK u1 (.USRMCLKI(flash_sck), .USRMCLKTS(tristate));
-`endif
 
   reg [23:0] R_reset = 24'hFFFFFF;
   always @(posedge clock)
@@ -128,19 +123,15 @@ module top
   wire [5:0] color;
   wire [15:0] sample;
 
-  wire load_done;
-  wire [21:0] memory_addr;
-  wire memory_read_cpu, memory_read_ppu;
   wire memory_write;
+  wire [21:0] memory_addr_cpu, memory_addr_ppu;
+  wire memory_read_cpu, memory_read_ppu;
+  wire memory_write_cpu, memory_write_ppu;
   wire [7:0] memory_din_cpu, memory_din_ppu;
-  wire [7:0] memory_dout;
-  
+  wire [7:0] memory_dout_cpu, memory_dout_ppu;
   wire [31:0] mapper_flags;
-
-  // assign led = !load_done;
   
-  wire reload = 1'b0;
-
+  wire load_done;
   wire [7:0] flash_loader_data_out;
   wire [21:0] game_loader_address;
   reg [21:0] load_address_reg;
@@ -349,6 +340,24 @@ module top
     end
   end
 
+  // reset after download
+  reg [7:0] download_reset_cnt;
+  wire download_reset = download_reset_cnt != 0;
+  always @(posedge clock) begin
+    if(!load_done)
+      download_reset_cnt <= 8'd255;
+    else if(load_done && download_reset_cnt != 0)
+      download_reset_cnt <= download_reset_cnt - 8'd1;
+  end
+
+  // hold machine in reset until first download starts
+  reg downloading = 0;
+  reg init_reset = 1;
+  always @(posedge clock) begin
+    if (!downloading && flash_loader_data_ready) downloading <= 1'b1;
+    if(downloading) init_reset <= 1'b0;
+  end
+
   wire [15:0] sd_data_in;
   wire [15:0] sd_data_out;
   assign sdram_d = (!load_done ? !loader_write_mem : !memory_write) ? 16'hzzzz : sd_data_out;
@@ -362,39 +371,42 @@ module top
   sdram
   sdram_i
   (
-    .sd_data_in(sd_data_in),
-    .sd_data_out(sd_data_out),
-    .sd_addr(sdram_a),
-    .sd_dqm({sdram_dqm[1], sdram_dqm[0]}),
-    .sd_cs(sdram_csn),
-    .sd_ba(sdram_ba),
-    .sd_we(sdram_wen),
-    .sd_ras(sdram_rasn),
-    .sd_cas(sdram_casn),
-    // system interface
-    .clk(clock_sdram),
-    .clkref(nes_ce[1]),
-    .init(sys_reset),
-    // cpu/chipset interface
-    .addr(!load_done ? {3'b000, loader_addr_mem} : {3'b000, memory_addr}),
-    .we(load_done ? memory_write : loader_write_mem),
-    .din(!load_done ? loader_write_data_mem : memory_dout),
-    .oeA(memory_read_cpu),
-    .doutA(memory_din_cpu),
-    .oeB(memory_read_ppu),
-    .doutB(memory_din_ppu)
+   .sd_data_in(sd_data_in),
+   .sd_data_out(sd_data_out),
+   .sd_addr(sdram_a),
+   .sd_dqm({sdram_dqm[1], sdram_dqm[0]}),
+   .sd_cs(sdram_csn),
+   .sd_ba(sdram_ba),
+   .sd_we(sdram_wen),
+   .sd_ras(sdram_rasn),
+   .sd_cas(sdram_casn),
+   // system interface
+   .clk(clock_sdram),
+   .clkref(nes_ce[1]),
+   .init(!clock_locked),
+   .we_out(memory_write),
+   // cpu/chipset interface
+   .addrA     	   (!load_done ? {3'b000, loader_addr_mem} : {3'b000, memory_addr_cpu}),
+   .addrB          ({3'b000, memory_addr_ppu} ),
+
+   .weA            (!load_done ?  loader_write_mem : memory_write_cpu),
+   .weB            (memory_write_ppu),
+
+   .dinA           (!load_done ? loader_write_data_mem : memory_dout_cpu),
+   .dinB           (memory_dout_ppu),
+
+   .oeA            (memory_read_cpu),
+   .doutA          (memory_din_cpu ),
+
+   .oeB            (memory_read_ppu),
+   .doutB          (memory_din_ppu )
   );
 
   assign sdram_cke = 1'b1;
   assign sdram_clk = clock_sdram;
 
-  wire reset_nes = !load_done || sys_reset;
-  reg [1:0] nes_ce = 0;
-  wire run_nes = (nes_ce == 3);	// keep running even when reset, so that the reset can actually do its job!
-
-  // NES is clocked at every 4th cycle.
-  always @(posedge clock)
-    nes_ce <= nes_ce + 1;
+  wire reset_nes = (!load_done || init_reset || download_reset || sys_reset) ;
+  wire [1:0] nes_ce;
 
   // select button is not functional
   // as we don't have any onboard buttons left on the board
@@ -443,18 +455,31 @@ module top
   NES
   nes_i
   (
-    clock, reset_nes, run_nes,
-    mapper_flags,
-    sample, color,
-    joy_strobe, joy_clock, {3'b0, joypad_bits[0]},
-    5'b11111,  // enable all channels
-    memory_addr,
-    memory_read_cpu, memory_din_cpu,
-    memory_read_ppu, memory_din_ppu,
-    memory_write, memory_dout,
-    cycle, scanline,
-    dbgadr,
-    dbgctr
+   .clk(clock),
+   .reset_nes(reset_nes),
+   .sys_type(2'b00),
+   .nes_div(nes_ce),
+   .mapper_flags(mapper_flags),
+   .sample(sample),
+   .color(color),
+   .joypad_strobe(joy_strobe),
+   .joypad_clock(joy_clock),
+   .joypad_data({3'b0, joypad_bits[0]}),
+   .audio_channels(5'b11111),  // enable all channels
+   .cpumem_addr(memory_addr_cpu),
+   .cpumem_read(memory_read_cpu),
+   .cpumem_din(memory_din_cpu),
+   .cpumem_write(memory_write_cpu),
+   .cpumem_dout(memory_dout_cpu),
+   .ppumem_addr(memory_addr_ppu),
+   .ppumem_read(memory_read_ppu),
+   .ppumem_write(memory_write_ppu),
+   .ppumem_din(memory_din_ppu),
+   .ppumem_dout(memory_dout_ppu),
+   .cycle(cycle),
+   .scanline(scanline),
+   .int_audio(1),
+   .ext_audio(1)
   );
 
   wire blank;
@@ -543,7 +568,6 @@ module top
       (
         .CLK(clock),
         .RESET(reset_nes),
-        .CEN(run_nes),
         .DACin(sample),
         .DACout(dac1bit)
       );
@@ -560,7 +584,6 @@ module top
       (
         .CLK(clock),
         .RESET(reset_nes),
-        .CEN(run_nes),
         .DACin(sample[11:0]),
         .DACout(dac1bit)
       );
