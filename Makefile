@@ -95,11 +95,10 @@ VERILOG_FILES += mappers/Sachen.sv
 VERILOG_FILES += sdram.v
 VERILOG_FILES += game_loader.v
 VERILOG_FILES += flash_loader.v
-VERILOG_FILES += pll.v
+VERILOG_FILES += ecp5pll.sv
 VERILOG_FILES += palette_ram.v
 VERILOG_FILES += vga.v
 VERILOG_FILES += framebuffer.v
-VERILOG_FILES += clocks.v
 VERILOG_FILES += sigma_delta_dac.v
 VERILOG_FILES += vga2dvid.v
 VERILOG_FILES += flashmem.v
@@ -125,8 +124,10 @@ VHDL_FILES += t65/T65_MCode.vhd
 VHDL_FILES += t65/T65_ALU.vhd
 VHDL_FILES += t65/T65.vhd
 
+GHDL_MODULE = -mghdl
+
 %.json: ${VERILOG_FILES} ${VHDL_FILES}
-	$(YOSYS) -mghdl -q -l synth.log \
+	$(YOSYS) $(GHDL_MODULE) -q -l synth.log \
 	-p "ghdl --std=08 --ieee=synopsys ${VHDL_FILES} -e t65" \
 	-p "read_verilog -sv ${VERILOG_FILES}" \
 	-p "hierarchy -top top" \
