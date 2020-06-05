@@ -24,32 +24,37 @@
 module sdram (
 
 	// interface to the MT48LC16M16 chip
-	input [15:0]  		sd_data_in,    // 16 bit bidirectional data bus
-	output [15:0]  		sd_data_out,    // 16 bit bidirectional data bus
-	output [12:0]		sd_addr,    // 13 bit multiplexed address bus
-	output [1:0] 		sd_dqm,     // two byte masks
-	output [1:0] 		sd_ba,      // two banks
-	output 				sd_cs,      // a single chip select
-	output 				sd_we,      // write enable
-	output 				sd_ras,     // row address select
-	output 				sd_cas,     // columns address select
+  input [15:0] sd_data_in,
+  output [15:0] sd_data_out,
+	output [12:0]   sd_addr,    // 13 bit multiplexed address bus
+	output  [1:0]   sd_dqm,     // two byte masks
+	output  [1:0]   sd_ba,      // two banks
+	output          sd_cs,      // a single chip select
+	output          sd_we,      // write enable
+	output          sd_ras,     // row address select
+	output          sd_cas,     // columns address select
 
 	// cpu/chipset interface
-	input 		 		init,			// init signal after FPGA config to initialize RAM
-	input 		 		clk,			// sdram is accessed at up to 128MHz
-	input					clkref,		// reference clock to sync to
+	input 		 		init,       // init signal after FPGA config to initialize RAM
+	input 		 		clk,        // sdram is accessed at up to 128MHz
+	input               clkref,     // reference clock to sync to
+  output        we_out, // Tristate control signal
 	
-	input [24:0]   	addr,       // 25 bit byte address
-	input 		 		we,         // cpu/chipset requests write
-	input [7:0]  		din,			// data input from chipset/cpu
-	input 		 		oeA,        // cpu requests data
-	output reg [7:0]  doutA,	   // data output to cpu
-	input 		 		oeB,        // ppu requests data
-	output reg [7:0]  doutB 	   // data output to ppu
+	input [24:0]        addrA,      // 25 bit byte address
+	input               weA,        // cpu/chipset requests write
+	input [7:0]         dinA,       // data input from chipset/cpu
+	input               oeA,        // cpu requests data
+	output reg [7:0]    doutA,      // data output to cpu
+
+	input [24:0]        addrB,      // 25 bit byte address
+	input               weB,        // cpu/chipset requests write
+	input [7:0]         dinB,       // data input from chipset/cpu
+	input               oeB,        // ppu requests data
+	output reg [7:0]    doutB       // data output to ppu
 );
 
 // no burst configured
-localparam RASCAS_DELAY   = 3'd3;   // tRCD=20ns -> 3 cycles@128MHz
+localparam RASCAS_DELAY   = 3'd2;   // tRCD=20ns -> 2 cycles@85MHz
 localparam BURST_LENGTH   = 3'b000; // 000=1, 001=2, 010=4, 011=8
 localparam ACCESS_TYPE    = 1'b0;   // 0=sequential, 1=interleaved
 localparam CAS_LATENCY    = 3'd3;   // 2/3 allowed
@@ -63,33 +68,37 @@ localparam MODE = { 3'b000, NO_WRITE_BURST, OP_MODE, CAS_LATENCY, ACCESS_TYPE, B
 // ------------------------ cycle state machine ------------------------
 // ---------------------------------------------------------------------
 
-localparam STATE_FIRST     = 4'd0;   // first state in cycle
-localparam STATE_CMD_START = 4'd1;   // state in which a new command can be started
-localparam STATE_CMD_CONT  = STATE_CMD_START  + RASCAS_DELAY; // 4 command can be continued
-localparam STATE_CMD_READ  = 4'd7;   // read state
-localparam STATE_LAST      = 4'd15;  // last state in cycle
+localparam STATE_FIRST     = 3'd0;   // first state in cycle
+localparam STATE_CMD_START = 3'd1;   // state in which a new command can be started
+localparam STATE_CMD_CONT  = STATE_CMD_START + RASCAS_DELAY;      // 3 command can be continued
+localparam STATE_CMD_READ  = STATE_CMD_CONT + CAS_LATENCY + 1'd1; // 6 read state
+localparam STATE_LAST      = 3'd7;  // last state in cycle
 
-reg [3:0] q = STATE_FIRST;
+reg clkref_last;
+reg [2:0] q;
 always @(posedge clk) begin
-	// SDRAM (state machine) clock is 86MHz. Synchronize this to systems 21.477 Mhz clock
+	// SDRAM (state machine) clock is 85MHz. Synchronize this to systems 21.477 Mhz clock
    // force counter to pass state LAST->FIRST exactly after the rising edge of clkref
-   if(((q == STATE_LAST) && ( clkref == 1)) ||
-		((q == STATE_FIRST) && ( clkref == 0)) ||
-      ((q != STATE_LAST) && (q != STATE_FIRST)))
-			q <= q + 3'd1;
+   clkref_last <= clkref;
+
+   q <= q + 1'd1;
+   if (q==STATE_LAST) q<=STATE_FIRST;
+   if (~clkref_last & clkref) q<=STATE_FIRST + 1'd1;
+
 end
 
 // ---------------------------------------------------------------------
 // --------------------------- startup/reset ---------------------------
 // ---------------------------------------------------------------------
 
-// wait 1ms (32 8Mhz cycles) after FPGA config is done before going
+// wait 1ms (85000 cycles) after FPGA config is done before going
 // into normal operation. Initialize the ram in the last 16 reset cycles (cycles 15-0)
-reg [4:0] reset;
+reg [16:0] reset;
 always @(posedge clk) begin
-	if(init)	reset <= 5'h1f;
+	//if(init)	reset <= 17'h14c08;
+	if(init)	reset <= 17'h1f;
 	else if((q == STATE_LAST) && (reset != 0))
-		reset <= reset - 5'd1;
+		reset <= reset - 17'd1;
 end
 
 // ---------------------------------------------------------------------
@@ -109,19 +118,12 @@ localparam CMD_LOAD_MODE       = 4'b0000;
 
 wire [3:0] sd_cmd;   // current command sent to sd ram
 
-// drive control signals according to current command
-assign sd_cs  = sd_cmd[3];
-assign sd_ras = sd_cmd[2];
-assign sd_cas = sd_cmd[1];
-assign sd_we  = sd_cmd[0];
-
-// drive ram data lines when writing, set them as inputs otherwise
-// the eight bits are sent on both bytes ports. Which one's actually
-// written depends on the state of dqm of which only one is active
-// at a time when writing
-assign sd_data_out = we?{din, din}:16'b0;
-
-wire oe = oeA || oeB;
+// clkref high - CPU
+// clkref low  - PPU
+wire        oe = clkref ? oeA : oeB;
+assign        we_out = clkref ? weA : weB;
+wire [24:0] addr = clkref ? addrA : addrB;
+wire  [7:0] din = clkref ? dinA : dinB;
 
 reg addr0;
 always @(posedge clk)
@@ -131,8 +133,8 @@ wire [7:0] dout = addr0?sd_data_in[7:0]:sd_data_in[15:8];
 
 always @(posedge clk) begin
 	if(q == STATE_CMD_READ) begin
-		if(oeA) doutA <= dout;
-		if(oeB) doutB <= dout;
+		if(oeA &&  clkref) doutA <= dout;
+		if(oeB && !clkref) doutB <= dout;
 	end
 end
 
@@ -142,23 +144,31 @@ wire [3:0] reset_cmd =
 	CMD_INHIBIT;
 
 wire [3:0] run_cmd =
-	((we || oe) && (q == STATE_CMD_START))?CMD_ACTIVE:
-	(we && 			(q == STATE_CMD_CONT ))?CMD_WRITE:
-	(!we &&  oe &&	(q == STATE_CMD_CONT ))?CMD_READ:
-	(!we && !oe && (q == STATE_CMD_START))?CMD_AUTO_REFRESH:
+	((we_out || oe) && (q == STATE_CMD_START))?CMD_ACTIVE:
+	( we_out        && (q == STATE_CMD_CONT ))?CMD_WRITE:
+	(!we_out &&  oe && (q == STATE_CMD_CONT ))?CMD_READ:
+	(!we_out && !oe && (q == STATE_CMD_START))?CMD_AUTO_REFRESH:
 	CMD_INHIBIT;
-	
+
 assign sd_cmd = (reset != 0)?reset_cmd:run_cmd;
 
 wire [12:0] reset_addr = (reset == 13)?13'b0010000000000:MODE;
-	
+
 wire [12:0] run_addr = 
 	(q == STATE_CMD_START)?addr[21:9]:{ 4'b0010, addr[24], addr[8:1]};
 
+assign sd_data_out = we_out?{ din, din }:16'b0;
+//register SDRAM output signals
 assign sd_addr = (reset != 0)?reset_addr:run_addr;
 
-assign sd_ba = addr[23:22];
+assign sd_ba = (reset != 0)?2'b00:addr[23:22];
 
-assign sd_dqm = we?{ addr[0], ~addr[0] }:2'b00;
+assign sd_dqm = we_out?{ addr[0], ~addr[0] }:2'b00;
+
+// drive control signals according to current command
+assign sd_cs  = sd_cmd[3];
+assign sd_ras = sd_cmd[2];
+assign sd_cas = sd_cmd[1];
+assign sd_we  = sd_cmd[0];
 
 endmodule
