@@ -88,7 +88,7 @@ VERILOG_FILES += mappers/MMC5.sv
 VERILOG_FILES += mappers/VRC.sv
 VERILOG_FILES += mappers/misc.sv
 VERILOG_FILES += mappers/Namco.sv
-#VERILOG_FILES += mappers/Sunsoft.sv
+VERILOG_FILES += mappers/Sunsoft.sv
 VERILOG_FILES += mappers/JYCompany.sv
 VERILOG_FILES += mappers/Sachen.sv
 

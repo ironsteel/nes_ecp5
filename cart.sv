@@ -647,7 +647,7 @@ Mapper66 map66(
 // Notes  :                                                                    //
 // Games  : Fantasy Zone II, Mito Koumon                                       //
 //*****************************************************************************//
-/*Mapper67 map67(
+Mapper67 map67(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[67] | me[190]),
@@ -669,7 +669,7 @@ Mapper66 map66(
 	.flags_out_b(flags_out_b),
 	.audio_in   (audio_in),
 	.audio_b    (audio_out_b)
-);*/
+);
 
 //*****************************************************************************//
 // Name   : Sunsoft-4                                                          //
@@ -678,7 +678,7 @@ Mapper66 map66(
 // Notes  :                                                                    //
 // Games  : After Burner (J), Majaraja                                         //
 //*****************************************************************************//
-/*Mapper68 map68(
+Mapper68 map68(
 	.clk        (clk),
 	.ce         (ce),
 	.enable     (me[68]),
@@ -700,7 +700,7 @@ Mapper66 map66(
 	.flags_out_b(flags_out_b),
 	.audio_in   (audio_in),
 	.audio_b    (audio_out_b)
-);*/
+);
 
 //*****************************************************************************//
 // Name   : Sunsoft FME-7                                                      //
