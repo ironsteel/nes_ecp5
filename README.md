@@ -100,8 +100,7 @@ or changing the `FPGA_SIZE` variable in the Makefile.
 
 ## Unsupported mappers
 
-mapper16, mapper67, mapper68,
-mapper69, mapper83, VRC7, MapperFDS and MapperNSF.
+mapper16, mapper69, mapper83, VRC7, MapperFDS and MapperNSF.
 
 These mappers are not supported because their
 source code is using system verilog features that

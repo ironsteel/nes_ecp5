@@ -319,7 +319,7 @@ wire [7:0] ss5b_amp_lut[0:31] = '{
 	8'd53, 8'd63, 8'd74, 8'd89, 8'd105, 8'd125, 8'd149, 8'd177
 };
 
-endmodule
+endmodule*/ 
 
 // Mapper 190, Magic Kid GooGoo
 // Mapper 67, Sunsoft-3
@@ -462,7 +462,6 @@ assign vram_ce = chr_ain[13];
 
 endmodule
 
-
 // #68 - Sunsoft-4 - Game After Burner, and some japanese games. MAX: 128kB PRG, 256kB CHR
 module Mapper68(
 	input        clk,         // System clock
@@ -571,4 +570,4 @@ assign chr_allow = flags[15];
 assign chr_aout = (chr_ain[13] == 0) ? {4'b10_00, chrout, chr_ain[10:0]} : {5'b10_001, nameout, chr_ain[9:0]};
 assign vram_ce = chr_ain[13] && !use_chr_rom;
 
-endmodule*/
+endmodule
