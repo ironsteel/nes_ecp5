@@ -74,33 +74,49 @@ module top
   assign sd_d[3] = 1'bz; // FPGA pin pullup sets SD card inactive at SPI bus
   //assign sd_d[2] = 1'bz;
 
-  wire clk_125MHz, clk_25MHz; // video
-  wire clk_48MHz, clk_6MHz; // usb
+  wire [3:0] dvi_usb_clocks;
   wire dvi_clock_locked;
-  clk_25_125_48_6_25
+  ecp5pll
+  #(
+      .in_hz( 25*1000000),
+    .out0_hz(125*1000000),
+    .out1_hz( 48*1000000), .out1_tol_hz(100000),
+    .out2_hz(  6*1000000), .out2_tol_hz( 10000),
+    .out3_hz( 25*1000000)
+  )
   clk_dvi_usb_inst
   (
-    .clk25_i(clk_25mhz),
-    .clk125_o(clk_125MHz),
-    .clk48_o(clk_48MHz),
-    .clk6_o(clk_6MHz),
-    .clk25_o(clk_25MHz),
+    .clk_i(clk_25mhz),
+    .clk_o(dvi_usb_clocks),
     .locked(dvi_clock_locked)
   );
-  wire clk_shift = clk_125MHz;
-  wire clk_pixel = clk_25MHz;
+  wire clk_shift = dvi_usb_clocks[0];
+  wire clk_pixel = dvi_usb_clocks[3];
+  wire clk_48MHz = dvi_usb_clocks[1]; // USB1.1
+  wire clk_6MHz  = dvi_usb_clocks[2]; // USB1.0
 
-  wire clock;
-  wire clock_locked;
-  wire clock_sdram;
-  clocks
+  wire [3:0] sys_sdram_clocks;
+  wire sys_sdram_clocks_locked;
+  ecp5pll
+  #(
+      .in_hz( 25*1000000),
+    .out0_hz(   85714000), .out0_tol_hz(1000), // not used, must have phase 0 deg
+    .out1_hz(   85714000), .out1_tol_hz(1000), .out1_deg(90),
+    .out2_hz(   21428000), .out2_tol_hz(1000),
+    .out3_hz(   21428000), .out3_tol_hz(1000)  // not used
+  )
   clocks_inst
   (
-    .clock25(clk_25mhz),
-    .clock21(clock),
-    .clock85(clock_sdram),
-    .clock_locked(clock_locked)
+    .clk_i(clk_25mhz),
+    .clk_o(sys_sdram_clocks),
+    .locked(sys_sdram_clocks_locked)
   );
+  wire clock_sdram = sys_sdram_clocks[1];
+  wire clock       = sys_sdram_clocks[2];
+  reg clock_locked;
+  always @(posedge clock)
+    clock_locked <= sys_sdram_clocks_locked;
+
 
   wire flash_sck;
   wire tristate = 1'b0;
