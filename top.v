@@ -100,19 +100,20 @@ module top
   ecp5pll
   #(
       .in_hz( 25*1000000),
-    .out0_hz(   85714000), .out0_tol_hz(1000), // not used, must have phase 0 deg
-    .out1_hz(   85714000), .out1_tol_hz(1000), .out1_deg(90),
-    .out2_hz(   21428000), .out2_tol_hz(1000),
-    .out3_hz(   21428000), .out3_tol_hz(1000)  // not used
+    .out0_hz(   85714285), // 4*25*6/7 MHz
+    .out1_hz(   85714285), .out1_deg(270), // 0-45 ok, 90 fail, 150-359 ok
+    .out2_hz(   21428571), //   25*6/7 MHz
+    .out3_hz(   21428571)  // not used
   )
-  clocks_inst
+  clk_sdram_sys_inst
   (
     .clk_i(clk_25mhz),
     .clk_o(sys_sdram_clocks),
     .locked(sys_sdram_clocks_locked)
   );
-  wire clock_sdram = sys_sdram_clocks[1];
-  wire clock       = sys_sdram_clocks[2];
+  wire clock_sdram_core = sys_sdram_clocks[0]; // SDRAM driver clock
+  wire clock_sdram_chip = sys_sdram_clocks[1]; // SDRAM chip clock
+  wire clock            = sys_sdram_clocks[2]; // NES system clock
   reg clock_locked;
   always @(posedge clock)
     clock_locked <= sys_sdram_clocks_locked;
@@ -397,7 +398,7 @@ module top
    .sd_ras(sdram_rasn),
    .sd_cas(sdram_casn),
    // system interface
-   .clk(clock_sdram),
+   .clk(clock_sdram_core),
    .clkref(nes_ce[1]),
    .init(!clock_locked),
    .we_out(memory_write),
@@ -419,7 +420,7 @@ module top
   );
 
   assign sdram_cke = 1'b1;
-  assign sdram_clk = clock_sdram;
+  assign sdram_clk = clock_sdram_chip;
 
   wire reset_nes = (!load_done || init_reset || download_reset || sys_reset) ;
   wire [1:0] nes_ce;
