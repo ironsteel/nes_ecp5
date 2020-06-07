@@ -7,7 +7,6 @@ FPGA_KS ?= $(FPGA_PREFIX)$(FPGA_SIZE)k
 
 ifeq ($(FPGA_SIZE), 12)
   CHIP_ID=0x21111043
-  FPGA_KS = $(FPGA_PREFIX)25k
 endif
 ifeq ($(FPGA_SIZE), 25)
   CHIP_ID=0x41111043
@@ -19,62 +18,18 @@ ifeq ($(FPGA_SIZE), 85)
   CHIP_ID=0x41113043 # forksand board: 0x81113043
 endif
 
-
 IDCODE ?= $(CHIP_ID)
 
-# ******* tools installation paths *******
-# https://github.com/ldoolitt/vhd2vl
-#VHDL2VL ?= /mt/scratch/tmp/openfpga/vhd2vl/src/vhd2vl
-VHDL2VL ?= vhdl2vl
-# https://github.com/YosysHQ/yosys
-#YOSYS ?= /mt/scratch/tmp/openfpga/yosys/yosys
-YOSYS ?= yosys
-# https://github.com/YosysHQ/nextpnr
-#NEXTPNR-ECP5 ?= /mt/scratch/tmp/openfpga/nextpnr/nextpnr-ecp5
-NEXTPNR-ECP5 ?= nextpnr-ecp5
-# https://github.com/SymbiFlow/prjtrellis
-TRELLIS ?= /mt/scratch/tmp/openfpga/prjtrellis
-
-# open source synthesis tools
-#ECPPLL ?= $(TRELLIS)/libtrellis/ecppll
-ECPPLL ?= ecppll
-#ECPPACK ?= $(TRELLIS)/libtrellis/ecppack
-ECPPACK ?= ecppack
-# usage	LANG=C LD_LIBRARY_PATH=$(LIBTRELLIS) $(ECPPACK) --db $(TRELLISDB) --compress --idcode $(IDCODE) $< $@
-TRELLISDB ?= $(TRELLIS)/database
-LIBTRELLIS ?= $(TRELLIS)/libtrellis
-BIT2SVF ?= $(TRELLIS)/tools/bit_to_svf.py
-#BASECFG ?= $(TRELLIS)/misc/basecfgs/empty_$(FPGA_CHIP_EQUIVALENT).config
-# yosys options, sometimes those can be used: -noccu2 -nomux -nodram
-YOSYS_OPTIONS ?= -nowidelut
-#YOSYS_OPTIONS ?= -abc9
-# nextpnr options
-#NEXTPNR_OPTIONS ?=
-NEXTPNR_OPTIONS ?= --timing-allow-fail
-#NEXTPNR_OPTIONS ?= --timing-allow-fail
-
-CLK0_NAME = clk_25_125_48_6_25
-CLK0_FILE_NAME = $(CLK0_NAME).v
-CLK0_OPTIONS = \
-  --module=$(CLK0_NAME) \
-  --clkin_name=clk25_i \
-  --clkin=25 \
-  --clkout0_name=clk125_o \
-  --clkout0=125 \
-  --clkout1_name=clk48_o \
-  --clkout1=48 \
-  --clkout2_name=clk6_o \
-  --clkout2=6 \
-  --clkout3_name=clk25_o \
-  --clkout3=25
+YOSYS           ?= yosys
+YOSYS_OPTIONS   ?= -abc9 -nowidelut
+NEXTPNR-ECP5    ?= nextpnr-ecp5
+NEXTPNR_OPTIONS ?= --timing-allow-fail --router router2
+ECPPACK         ?= ecppack
 
 all: ${PROJ}.bit ${PROJ}.json
 
-$(CLK0_NAME).v:
-	$(ECPPLL) $(CLK0_OPTIONS) --file $@
-
-VERILOG_FILES = top.v
-VERILOG_FILES += $(CLK0_FILE_NAME) 
+VERILOG_FILES  = top.v
+VERILOG_FILES += ecp5pll.sv
 VERILOG_FILES += nes.v
 VERILOG_FILES += ppu.sv
 VERILOG_FILES += apu.sv
@@ -95,7 +50,6 @@ VERILOG_FILES += mappers/Sachen.sv
 VERILOG_FILES += sdram.v
 VERILOG_FILES += game_loader.v
 VERILOG_FILES += flash_loader.v
-VERILOG_FILES += ecp5pll.sv
 VERILOG_FILES += palette_ram.v
 VERILOG_FILES += vga.v
 VERILOG_FILES += framebuffer.v
@@ -119,12 +73,12 @@ VERILOG_FILES += usb/usb11_phy_vhdl/usb_phy.v
 VERILOG_FILES += usb/usb11_phy_vhdl/usb_rx_phy.v
 VERILOG_FILES += usb/usb11_phy_vhdl/usb_tx_phy.v
 
-VHDL_FILES = t65/T65_Pack.vhd
+VHDL_FILES  = t65/T65_Pack.vhd
 VHDL_FILES += t65/T65_MCode.vhd
 VHDL_FILES += t65/T65_ALU.vhd
 VHDL_FILES += t65/T65.vhd
 
-GHDL_MODULE = -mghdl
+#GHDL_MODULE = -mghdl
 
 %.json: ${VERILOG_FILES} ${VHDL_FILES}
 	$(YOSYS) $(GHDL_MODULE) -q -l synth.log \
@@ -133,13 +87,11 @@ GHDL_MODULE = -mghdl
 	-p "hierarchy -top top" \
 	-p "synth_ecp5 ${YOSYS_OPTIONS} -json $@"
 
-#        -p "read -vlog2k ${VERILOG_FILES}" \
-
 %_out.config: %.json
 	$(NEXTPNR-ECP5) $(NEXTPNR_OPTIONS) --json  $< --textcfg $@ --$(FPGA_KS) --freq 21 --package CABGA381 --lpf ulx3s_v20.lpf
 
 %.bit: %_out.config
-	LANG=C LD_LIBRARY_PATH=$(LIBTRELLIS) $(ECPPACK) --db $(TRELLISDB) --compress --idcode $(IDCODE) $< $@
+	LANG=C $(ECPPACK) --freq 62.0 --compress --idcode $(IDCODE) $< $@
 
 prog: ${PROJ}.bit
 	fujprog $<
