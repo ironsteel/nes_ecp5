@@ -58,8 +58,9 @@ VERILOG_FILES += vga2dvid.v
 VERILOG_FILES += flashmem.v
 VERILOG_FILES += tmds_encoder.v
 
-VERILOG_FILES += osd/osd.v         
-VERILOG_FILES += osd/spi_osd.v   
+VERILOG_FILES += osd/osd.v
+VERILOG_FILES += osd/spi_osd.v
+VERILOG_FILES += osd/spi_ram_btn.v
 VERILOG_FILES += osd/spirw_slave_v.v
 
 VERILOG_FILES += usb/report_decoder/usbh_report_decoder_darfon.v
@@ -102,9 +103,7 @@ prog_flash: ${PROJ}.bit
 prog_game: rom/game_tilt.img
 	fujprog -j FLASH -f 0x200000 $<
 
-
 clean:
 	rm -f *.bit *.config *.json
-
 
 .PHONY: prog clean
