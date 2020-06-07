@@ -3,7 +3,7 @@
 Uploading to ESP32 is explained in
 [esp32ecp5](https://github.com/emard/esp32ecp5) project.
 
-Upload "nes.py" to ESP32
+Upload "osd.py" and "ld_nes.py" to ESP32.
 
 Compile NES bitstream "nes.bit" with ESP32 support. Also USB support
 is recommended if you have compatible joystick (darfon, saitek, xbox360).
