@@ -5,7 +5,8 @@ module osd
   parameter C_x_start = 128,
   parameter C_x_stop  = 383,
   parameter C_y_start = 128,
-  parameter C_y_stop  = 383
+  parameter C_y_stop  = 383,
+  parameter C_transparency = 0
 )
 (
   input  wire clk_pixel, clk_pixel_ena,
@@ -88,6 +89,30 @@ module osd
 
   reg [7:0] R_vga_r, R_vga_g, R_vga_b;
   reg R_hsync, R_vsync, R_blank;
+  generate
+  if(C_transparency)
+  always @(posedge clk_pixel)
+  begin
+    if(clk_pixel_ena)
+    begin
+      if(osd_en & i_osd_en)
+      begin
+        R_vga_r <= {i_osd_r[7],i_osd_r[6:0]|i_r[7:1]};
+        R_vga_g <= {i_osd_g[7],i_osd_g[6:0]|i_g[7:1]};
+        R_vga_b <= {i_osd_b[7],i_osd_b[6:0]|i_b[7:1]};
+      end
+      else
+      begin
+        R_vga_r <= i_r;
+        R_vga_g <= i_g;
+        R_vga_b <= i_b;
+      end
+      R_hsync <= i_hsync;
+      R_vsync <= i_vsync;
+      R_blank <= i_blank;
+    end
+  end
+  if(!C_transparency)
   always @(posedge clk_pixel)
   begin
     if(clk_pixel_ena)
@@ -109,6 +134,7 @@ module osd
       R_blank <= i_blank;
     end
   end
+  endgenerate
 
   assign o_osd_x = R_osd_x;
   assign o_osd_y = R_osd_y;
