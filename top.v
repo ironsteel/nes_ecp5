@@ -9,6 +9,7 @@ module top
   parameter C_report_bytes_strict=1, // 0:when report length is variable/unknown
   parameter C_autofire_hz=10, // joystick trigger and bumper
   parameter C_osd_usb=2, // 0:OSD onboard BTN's, 1:OSD USB joystick, 2:both
+  parameter C_transparency=1, // 0:opaque 1:transparent OSD menu
   // choose one: C_flash_loader or C_esp32_loader
   parameter C_flash_loader=0, // fujprog -j flash -f 0x200000 100in1.img
   parameter C_esp32_loader=1 // usage: import nes # for OSD press together A B SELECT START or all 4 directions
@@ -135,24 +136,24 @@ module top
 
   wire scandoubler_disable;
 
-  wire [8:0] cycle;
-  wire [8:0] scanline;
-  wire [5:0] color;
+  wire  [8:0] cycle;
+  wire  [8:0] scanline;
+  wire  [5:0] color;
   wire [15:0] sample;
 
   wire memory_write;
   wire [21:0] memory_addr_cpu, memory_addr_ppu;
   wire memory_read_cpu, memory_read_ppu;
   wire memory_write_cpu, memory_write_ppu;
-  wire [7:0] memory_din_cpu, memory_din_ppu;
-  wire [7:0] memory_dout_cpu, memory_dout_ppu;
+  wire  [7:0] memory_din_cpu, memory_din_ppu;
+  wire  [7:0] memory_dout_cpu, memory_dout_ppu;
   wire [31:0] mapper_flags;
   
   wire load_done;
-  wire [7:0] flash_loader_data_out;
+  wire  [7:0] flash_loader_data_out;
   wire [21:0] game_loader_address;
-  reg [21:0] load_address_reg;
-  wire [7:0] game_loader_mem;
+  reg  [21:0] load_address_reg;
+  wire  [7:0] game_loader_mem;
   wire flash_loader_data_ready;
   wire loader_write;
 
@@ -232,99 +233,71 @@ module top
   end
   if(C_esp32_loader)
   begin
-    wire [31:0] spi_addr;
+    reg [6:0] R_btn_joy;
+    if(C_osd_usb==0)
+      always @(posedge clock)
+        R_btn_joy <= btn;
+    if(C_osd_usb==1)
+      always @(posedge clock)
+        R_btn_joy <=
+        {
+            usb_buttons[7], // 6 right
+            usb_buttons[6], // 5 left
+            usb_buttons[5], // 4 down
+            usb_buttons[4], // 3 up
+            1'b0,           // 2 B
+            1'b0,           // 1 A
+            1'b1            // 0 start
+        };
+    if(C_osd_usb==2)
+      always @(posedge clock)
+        R_btn_joy <= btn |
+        {
+            usb_buttons[7], // 6 right
+            usb_buttons[6], // 5 left
+            usb_buttons[5], // 4 down
+            usb_buttons[4], // 3 up
+            1'b0,           // 2 B
+            1'b0,           // 1 A
+            1'b1            // 0 start
+        };
+    wire [31:0] spi_ram_addr;
     wire spi_rd;
     reg  [7:0] R_spi_data_in;
     wire spi_wr;
     reg R_spi_wr;
-    spirw_slave_v
+    wire irq;
+    spi_ram_btn
     #(
-      .c_addr_bits($bits(spi_addr)),
+      .c_addr_bits($bits(spi_ram_addr)),
       .c_sclk_capable_pin(1'b0)
     )
-    spirw_slave_inst
+    spi_ram_btn_inst
     (
       .clk(clock),
       .csn(~wifi_gpio5),
       .sclk(wifi_gpio16),
       .mosi(sd_d[1]), // wifi_gpio4
       .miso(sd_d[2]), // wifi_gpio12
+      .btn(R_btn_joy),
+      .irq(irq),
       .rd(spi_rd),
       .wr(spi_wr),
-      .addr(spi_addr),
+      .addr(spi_ram_addr),
       .data_in(R_spi_data_in), // R_spi_data_in used to read BTN state
       .data_out(flash_loader_data_out)
     );
-    wire flash_loader_data_ready = spi_wr & ~R_spi_wr;
-    reg R_sys_reset;
-    always @(posedge clock)
-    begin
+    assign wifi_gpio0 = ~irq;
+
+    reg [7:0] R_cpu_control;
+    always @(posedge clock) begin
       R_spi_wr <= spi_wr;
-      if(spi_wr == 1'b1 && spi_addr[31:24] == 8'hFF)
-        R_sys_reset <= flash_loader_data_out[0];
-    end
-    assign sys_reset = R_sys_reset;
-    // SPI read: IRQ flags and button state
-    reg [7:0] R_btn, R_btn_latch;
-    reg R_btn_irq;
-    always @(posedge clock)
-      if(spi_rd)
-      begin
-        if(spi_addr[31:24] == 8'hF1)
-          R_spi_data_in <= {R_btn_irq,7'd0};
-        else
-          R_spi_data_in <= {1'b0,R_btn};
-      end
-    // IRQ controller tracks joystick state
-    reg R_spi_rd;
-    reg [19:0] R_btn_debounce;
-    always @(posedge clock)
-    begin
-      R_spi_rd <= spi_rd;
-      if(spi_rd == 1'b0 && R_spi_rd == 1'b1 && spi_addr[31:24] == 8'hF1)
-        R_btn_irq <= 1'b0;
-      else // BTN state is read from 0xFExxxxxx
-      begin
-        if(C_osd_usb==0)
-          R_btn_latch <= {1'b0,btn};
-        if(C_osd_usb==1)
-          R_btn_latch <=
-          {
-            1'b0,
-            usb_buttons[7], // 6 right
-            usb_buttons[6], // 5 left
-            usb_buttons[5], // 4 down
-            usb_buttons[4], // 3 up
-            1'b0,           // 2 B
-            1'b0,           // 1 A
-            1'b1            // 0 start
-          };
-        if(C_osd_usb==2)
-          R_btn_latch <= {1'b0,btn} |
-          {
-            1'b0,
-            usb_buttons[7], // 6 right
-            usb_buttons[6], // 5 left
-            usb_buttons[5], // 4 down
-            usb_buttons[4], // 3 up
-            1'b0,           // 2 B
-            1'b0,           // 1 A
-            1'b1            // 0 start
-          };
-        if(R_btn != R_btn_latch && R_btn_debounce[$bits(R_btn_debounce)-1] == 1 && R_btn_irq == 0)
-        begin
-          R_btn_irq <= 1'b1;
-          R_btn_debounce <= 0;
-          R_btn <= R_btn_latch;
-        end
-        else
-          if(R_btn_debounce[$bits(R_btn_debounce)-1] == 1'b0)
-            R_btn_debounce <= R_btn_debounce + 1;
+      if (spi_wr && spi_ram_addr[31:24] == 8'hFF) begin
+        R_cpu_control <= flash_loader_data_out;
       end
     end
-    assign wifi_gpio0 = ~R_btn_irq; // interrupt line, active on falling edge
-    //assign led = {R_btn_irq,btn};
-    //assign led = R_btn_latch;
+    assign sys_reset = R_cpu_control[0];
+    wire flash_loader_data_ready = spi_wr & ~R_spi_wr;
   end
   endgenerate
 
@@ -529,6 +502,7 @@ module top
     .c_start_x(62), .c_start_y(80),
     .c_chars_x(64), .c_chars_y(20),
     .c_init_on(0),
+    .c_transparency(C_transparency),
     .c_char_file("osd.mem"),
     .c_font_file("font_bizcat8x16.mem")
   )
