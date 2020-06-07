@@ -49,10 +49,10 @@ module usbh_report_decoder
     if(i_report_valid)
       R_btn <=
       {
-        usbjoyl_r|usbjoyr_r|R_hat_udlr[0]|ab_start_select,
-        usbjoyl_l|usbjoyr_l|R_hat_udlr[1]|ab_start_select,
-        usbjoyl_d|usbjoyr_d|R_hat_udlr[2]|ab_start_select,
-        usbjoyl_u|usbjoyr_u|R_hat_udlr[3]|ab_start_select,
+        usbjoyl_r|usbjoyr_r|hat_r|ab_start_select,
+        usbjoyl_l|usbjoyr_l|hat_l|ab_start_select,
+        usbjoyl_d|usbjoyr_d|hat_d|ab_start_select,
+        usbjoyl_u|usbjoyr_u|hat_u|ab_start_select,
         usbjoy_start,
         usbjoy_select,
         usbjoy_b,
