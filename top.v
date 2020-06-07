@@ -111,8 +111,8 @@ module top
     .clk_o(sys_sdram_clocks),
     .locked(sys_sdram_clocks_locked)
   );
-  wire clock_sdram_core = sys_sdram_clocks[0]; // SDRAM driver clock
-  wire clock_sdram_chip = sys_sdram_clocks[1]; // SDRAM chip clock
+  wire clock_sdram_core = sys_sdram_clocks[0];
+  wire clock_sdram_chip = sys_sdram_clocks[1];
   wire clock            = sys_sdram_clocks[2]; // NES system clock
   reg clock_locked;
   always @(posedge clock)
@@ -531,7 +531,6 @@ module top
     .c_init_on(0),
     .c_char_file("osd.mem"),
     .c_font_file("font_bizcat8x16.mem")
-    //.c_font_file("font_vga.mem")
   )
   spi_osd_inst
   (
