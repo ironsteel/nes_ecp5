@@ -112,7 +112,7 @@ module osd
       R_blank <= i_blank;
     end
   end
-  if(!C_transparency)
+  else // C_transparency == 0
   always @(posedge clk_pixel)
   begin
     if(clk_pixel_ena)
