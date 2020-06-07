@@ -63,7 +63,11 @@ VERILOG_FILES += osd/spi_osd.v
 VERILOG_FILES += osd/spi_ram_btn.v
 VERILOG_FILES += osd/spirw_slave_v.v
 
+# choose one
 VERILOG_FILES += usb/report_decoder/usbh_report_decoder_darfon.v
+#VERILOG_FILES += usb/report_decoder/usbh_report_decoder_nes.v
+#VERILOG_FILES += usb/report_decoder/usbh_report_decoder_saitek.v
+#VERILOG_FILES += usb/report_decoder/usbh_report_decoder_xbox360.v
 
 VERILOG_FILES += usb/usbhost/usbh_crc16.v
 VERILOG_FILES += usb/usbhost/usbh_crc5.v
