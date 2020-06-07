@@ -1,1 +1,0 @@
-osd/spi_osd.v

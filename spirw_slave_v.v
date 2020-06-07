@@ -1,1 +1,0 @@
-osd/spirw_slave_v.v
