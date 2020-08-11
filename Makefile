@@ -84,7 +84,7 @@ VHDL_FILES += t65/T65_MCode.vhd
 VHDL_FILES += t65/T65_ALU.vhd
 VHDL_FILES += t65/T65.vhd
 
-#GHDL_MODULE = -mghdl
+GHDL_MODULE = -mghdl
 
 %.json: ${VERILOG_FILES} ${VHDL_FILES}
 	$(YOSYS) $(GHDL_MODULE) -q -l synth.log \
