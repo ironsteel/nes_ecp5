@@ -21,7 +21,7 @@ endif
 IDCODE ?= $(CHIP_ID)
 
 YOSYS           ?= yosys
-YOSYS_OPTIONS   ?= -abc9 -nowidelut
+YOSYS_OPTIONS   ?= -abc9
 NEXTPNR-ECP5    ?= nextpnr-ecp5
 NEXTPNR_OPTIONS ?= --timing-allow-fail --router router2
 ECPPACK         ?= ecppack
