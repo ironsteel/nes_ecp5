@@ -66,6 +66,7 @@ module top
   wire  btn_down  =  btn[4];
   wire  btn_left  =  btn[5];
   wire  btn_right =  btn[6];
+  wire  btn_select = btn_start & btn_a;
 
 
   // passthru to ESP32 micropython serial console
@@ -397,10 +398,6 @@ module top
 
   wire reset_nes = (!load_done || init_reset || download_reset || sys_reset) ;
   wire [1:0] nes_ce;
-
-  // select button is not functional
-  // as we don't have any onboard buttons left on the board
-  wire btn_select = 1'b0;
 
   reg last_joypad_clock;
   reg [7:0] joypad_bits;
