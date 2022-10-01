@@ -90,8 +90,7 @@ GHDL_MODULE = -mghdl
 	$(YOSYS) $(GHDL_MODULE) -q -l synth.log \
 	-p "ghdl --std=08 --ieee=synopsys ${VHDL_FILES} -e t65" \
 	-p "read_verilog -sv ${VERILOG_FILES}" \
-	-p "hierarchy -top top" \
-	-p "synth_ecp5 ${YOSYS_OPTIONS} -json $@"
+	-p "synth_ecp5 -top top ${YOSYS_OPTIONS} -json $@"
 
 %_out.config: %.json
 	$(NEXTPNR-ECP5) $(NEXTPNR_OPTIONS) --json  $< --textcfg $@ --$(FPGA_KS) --freq 21 --package CABGA381 --lpf ulx3s_v20.lpf
