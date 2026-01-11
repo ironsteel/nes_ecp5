@@ -1,5 +1,9 @@
 # FPGA NES on the ulx3s board using prj trellis, nextpnr and yosys
 
+## WARNING
+
+Currently, the design does not work as expected. After it's synthesized and flashed to the board, loading a game via the OSD does nothing. Currently investigating the issue
+
 ## Intro
 
 This is a port of the MIST NES core to the ulx3s board
